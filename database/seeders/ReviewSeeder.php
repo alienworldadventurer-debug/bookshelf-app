@@ -46,10 +46,13 @@ class ReviewSeeder extends Seeder
         $distribution[1] = 2;
 
         foreach ($books as $index => $book) {
-            $numReviews = $distribution[$index] ?? 2;
+            $numReviews = $distribution[$index] ?? 3;
 
-            for ($i = 0; $i < $numReviews; $i++) {
-                $user = $users->random();
+            // 💡重要：5人の全ユーザーから、この本にレビューを書く「重複しないユーザー」を必要数（2〜4人）だけ一括でランダム選出！
+            $selectedUsers = $users->random($numReviews);
+
+            // 選ばれた一意な（重複のない）ユーザーたちでループを回して登録
+            foreach ($selectedUsers as $user) {
                 $rating = rand(3, 5); // 評価値: 3〜5
 
                 $commentArray = $comments[$rating];
