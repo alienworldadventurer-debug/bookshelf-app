@@ -25,19 +25,6 @@ class StoreReviewRequest extends FormRequest
                 'nullable',
                 'string',
                 'max:1000',
-                // 【重複投稿防止】同一ユーザーによる同じ書籍への複数投稿をブロック
-                function ($attribute, $value, $fail) {
-                    $book = $this->route('book'); // リクエストパラメータから書籍モデルを取得
-                    if ($book) {
-                        $hasReviewed = \App\Models\Review::where('book_id', $book->id)
-                            ->where('user_id', $this->user()->id)
-                            ->exists();
-
-                        if ($hasReviewed) {
-                            $fail('この書籍には既にレビューを投稿しています。');
-                        }
-                    }
-                }
             ],
         ];
     }
