@@ -16,7 +16,7 @@ class ReviewController extends Controller
      */
     public function store(StoreReviewRequest $request, Book $book): RedirectResponse
     {
-        // ログイン中のユーザーIDと書籍IDを組み合わせてレビューを作成・保存します 
+        // ログイン中のユーザーIDと書籍IDを組み合わせてレビューを作成・保存します
         Review::create([
             'user_id' => auth()->id(),
             'book_id' => $book->id,
