@@ -5,6 +5,7 @@ use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\FavoriteController;
 use App\Http\Controllers\ReviewLikeController;
 use App\Http\Controllers\RankingController;
+use App\Http\Controllers\GenreController;
 use Illuminate\Support\Facades\Route;
 
 // トップページ（/）アクセス時は書籍一覧（/books）へリダイレクト
@@ -15,14 +16,10 @@ Route::get('/', function () {
 // 【ゲストでもアクセス可能】書籍一覧（index）と詳細画面（show）
 Route::resource('books', BookController::class)->only(['index', 'show']);
 
-// ジャンル管理一覧（仮置き：エラー防止用）
-Route::get('/genres', function () {
-    return 'ジャンル管理画面（準備中）';
-})->name('genres.index');
-
 // ランキング画面
 Route::get('/ranking', [RankingController::class, 'index'])->name('ranking.index');
 
+// 認証必須ルート
 Route::middleware(['auth'])->group(function () {
     Route::resource('books', BookController::class)->except(['index', 'show']);
 
@@ -42,4 +39,7 @@ Route::middleware(['auth'])->group(function () {
 
     // レビューいいねトグル処理（レビューのIDをルートパラメーターに持つ）
     Route::post('/reviews/{review}/like', [ReviewLikeController::class, 'store'])->name('reviews.like');
+
+    // ジャンル管理・ジャンル別書籍一覧のルート定義一括登録
+    Route::resource('genres', GenreController::class);
 });
