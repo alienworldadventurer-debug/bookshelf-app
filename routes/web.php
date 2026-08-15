@@ -4,6 +4,7 @@ use App\Http\Controllers\BookController;
 use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\FavoriteController;
 use App\Http\Controllers\ReviewLikeController;
+use App\Http\Controllers\RankingController;
 use Illuminate\Support\Facades\Route;
 
 // トップページ（/）アクセス時は書籍一覧（/books）へリダイレクト
@@ -19,10 +20,8 @@ Route::get('/genres', function () {
     return 'ジャンル管理画面（準備中）';
 })->name('genres.index');
 
-// ランキング画面（仮置き：エラー防止用）
-Route::get('/ranking', function () {
-    return 'ランキング画面（準備中）';
-})->name('ranking.index');
+// ランキング画面
+Route::get('/ranking', [RankingController::class, 'index'])->name('ranking.index');
 
 Route::middleware(['auth'])->group(function () {
     Route::resource('books', BookController::class)->except(['index', 'show']);
