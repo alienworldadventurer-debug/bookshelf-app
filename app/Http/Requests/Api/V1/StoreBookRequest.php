@@ -3,6 +3,8 @@
 namespace App\Http\Requests\Api\V1;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Contracts\Validation\Validator;
+use Illuminate\Http\Exceptions\HttpResponseException;
 
 class StoreBookRequest extends FormRequest
 {
@@ -60,5 +62,19 @@ class StoreBookRequest extends FormRequest
             'user_id.integer' => '登録者IDは整数で入力してください。',
             'user_id.exists' => '指定された登録者ユーザーが存在しません。',
         ];
+    }
+
+    /**
+     * バリデーション失敗時の挙動を上書き（オーバーライド）
+     * 
+     * Laravel標準のエラーメッセージを封じ込め、
+     * API仕様書に完全準拠したエラーJSONを強制的に返却します。
+     */
+    protected function failedValidation(Validator $validator)
+    {
+        throw new HttpResponseException(response()->json([
+            'message' => '入力内容に不備があります。', // 仕様書指定のメッセージ
+            'errors' => $validator->errors(),           // 具体的なエラー内容一覧
+        ], 422)); // ステータスコード 422（Unprocessable Entity）
     }
 }
