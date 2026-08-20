@@ -8,17 +8,6 @@ use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\ReviewLikeController;
 use Illuminate\Support\Facades\Route;
 
-// トップページ（/）アクセス時は書籍一覧（/books）へリダイレクト
-Route::get('/', function () {
-    return redirect()->route('books.index');
-});
-
-// 【ゲストでもアクセス可能】書籍一覧（index）と詳細画面（show）
-Route::resource('books', BookController::class)->only(['index', 'show']);
-
-// ランキング画面
-Route::get('/ranking', [RankingController::class, 'index'])->name('ranking.index');
-
 // 認証必須ルート
 Route::middleware(['auth'])->group(function () {
     Route::resource('books', BookController::class)->except(['index', 'show']);
@@ -43,3 +32,14 @@ Route::middleware(['auth'])->group(function () {
     // ジャンル管理・ジャンル別書籍一覧のルート定義一括登録
     Route::resource('genres', GenreController::class);
 });
+
+// トップページ（/）アクセス時は書籍一覧（/books）へリダイレクト
+Route::get('/', function () {
+    return redirect()->route('books.index');
+});
+
+// 【ゲストでもアクセス可能】書籍一覧（index）と詳細画面（show）
+Route::resource('books', BookController::class)->only(['index', 'show']);
+
+// ランキング画面
+Route::get('/ranking', [RankingController::class, 'index'])->name('ranking.index');

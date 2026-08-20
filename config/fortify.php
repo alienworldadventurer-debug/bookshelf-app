@@ -75,6 +75,10 @@ return [
 
     'home' => '/books',
 
+    'redirects' => [
+        'logout' => '/login', // ログアウト後に /login へリダイレクト
+    ],
+
     /*
     |--------------------------------------------------------------------------
     | Fortify Routes Prefix / Subdomain
