@@ -3,10 +3,10 @@
 namespace App\Http\Requests\Api\V1;
 
 use App\Models\Book;
-use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 use Illuminate\Contracts\Validation\Validator;
+use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Exceptions\HttpResponseException;
+use Illuminate\Validation\Rule;
 
 class UpdateBookRequest extends FormRequest
 {
@@ -73,7 +73,7 @@ class UpdateBookRequest extends FormRequest
 
     /**
      * バリデーション失敗時の挙動を上書き（オーバーライド）
-     * 
+     *
      * Laravel標準のエラーメッセージを封じ込め、
      * API仕様書に完全準拠したエラーJSONを強制的に返却します。
      */
