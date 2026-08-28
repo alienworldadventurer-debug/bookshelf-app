@@ -8,6 +8,9 @@ use Illuminate\Http\Exceptions\HttpResponseException;
 
 class StoreBookRequest extends FormRequest
 {
+    /**
+     * ユーザーがこのリクエストを実行する権限があるか判断。
+     */
     public function authorize(): bool
     {
         return true;
@@ -21,13 +24,12 @@ class StoreBookRequest extends FormRequest
         return [
             'title' => ['required', 'string', 'max:255'],
             'author' => ['required', 'string', 'max:255'],
-            'isbn' => ['required', 'string', 'digits:13', 'unique:books,isbn'],
+            'isbn' => ['nullable', 'string', 'digits:13', 'unique:books,isbn'],
             'published_date' => ['required', 'date'],
             'description' => ['nullable', 'string', 'max:1000'],
             'image_url' => ['nullable', 'url', 'max:255'],
             'genres' => ['required', 'array', 'min:1'],
             'genres.*' => ['integer', 'exists:genres,id'],
-            'user_id' => ['required', 'integer', 'exists:users,id'], // 登録者IDを必須とし、存在チェックを行います
         ];
     }
 
