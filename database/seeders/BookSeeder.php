@@ -14,9 +14,11 @@ class BookSeeder extends Seeder
      */
     public function run(): void
     {
-        $adminUser = User::where('email', 'yamada@example.com')->first();
+        // 全ユーザーを取得
+        $users = User::all();
 
-        if (! $adminUser) {
+        // ユーザーが1人も登録されていない場合は安全に処理を中断
+        if ($users->isEmpty()) {
             return;
         }
 
@@ -115,9 +117,8 @@ class BookSeeder extends Seeder
             $genreNames = $bookData['genres'];
             unset($bookData['genres']);
 
-            $bookNum = $index + 1;
-            $bookData['image_url'] = "https://placehold.co/200x300/e2e8f0/475569?text={$bookNum}";
-            $bookData['user_id'] = $adminUser->id;
+            // 5人のユーザーの中からランダムに1人を選んで割り当てる
+            $bookData['user_id'] = $users->random()->id;
 
             // firstOrCreate でISBN重複登録を防ぎながら作成
             $book = Book::firstOrCreate(
