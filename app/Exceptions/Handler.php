@@ -2,8 +2,10 @@
 
 namespace App\Exceptions;
 
+use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Throwable;
 
@@ -29,7 +31,7 @@ class Handler extends ExceptionHandler
             //
         });
 
-        // 【追記】APIリクエストにおいて、データが見つからない（404）場合の日本語ハンドリング
+        // APIリクエストにおいて、データが見つからない（404）場合の日本語ハンドリング
         $this->renderable(function (NotFoundHttpException $e, $request) {
             if ($request->is('api/*')) {
                 // ルートモデルバインディングなどの ModelNotFoundException が起因している場合
@@ -38,6 +40,24 @@ class Handler extends ExceptionHandler
                         'message' => '指定された書籍が見つかりません。',
                     ], 404);
                 }
+            }
+        });
+
+        // APIリクエストにおいて、未認証エラー（401）が発生した場合のJSONハンドリング
+        $this->renderable(function (AuthenticationException $e, $request) {
+            if ($request->is('api/*')) {
+                return response()->json([
+                    'message' => 'Unauthenticated.',
+                ], 401);
+            }
+        });
+
+        // APIリクエストにおいて、認可エラー（403）が発生した場合のJSONハンドリング
+        $this->renderable(function (AccessDeniedHttpException $e, $request) {
+            if ($request->is('api/*')) {
+                return response()->json([
+                    'message' => 'This action is unauthorized.',
+                ], 403);
             }
         });
     }
