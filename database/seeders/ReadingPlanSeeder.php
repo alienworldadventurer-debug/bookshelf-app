@@ -22,7 +22,7 @@ class ReadingPlanSeeder extends Seeder
         $books = Book::all();
 
         // 💡 データのセーフティネット：書籍が最低6冊以上あることを確認
-        if (!$yamada || !$suzuki || $books->count() < 6) {
+        if (! $yamada || ! $suzuki || $books->count() < 6) {
             return;
         }
 
@@ -72,7 +72,6 @@ class ReadingPlanSeeder extends Seeder
             'status' => ReadingPlanStatus::Completed,
             'completed_at' => Carbon::today()->subDays(5),
         ]);
-
 
         // --- 鈴木花子の読書計画（他ユーザー認可テスト用：1件） ---
 

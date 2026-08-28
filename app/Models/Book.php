@@ -69,4 +69,12 @@ class Book extends Model
     {
         return (int) $this->reviews()->count();
     }
+
+    /**
+     * 書籍に関連する読書計画一覧を取得
+     */
+    public function readingPlans(): HasMany
+    {
+        return $this->hasMany(ReadingPlan::class);
+    }
 }
