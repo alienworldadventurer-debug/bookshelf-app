@@ -17,7 +17,9 @@ Route::middleware(['auth'])->group(function () {
 
     // レビュー編集・更新・削除用
     Route::get('/reviews/{review}/edit', [ReviewController::class, 'edit'])->name('reviews.edit');
+
     Route::put('/reviews/{review}', [ReviewController::class, 'update'])->name('reviews.update');
+
     Route::delete('/reviews/{review}', [ReviewController::class, 'destroy'])->name('reviews.destroy');
 
     // お気に入り一覧画面
@@ -31,6 +33,10 @@ Route::middleware(['auth'])->group(function () {
 
     // ジャンル管理・ジャンル別書籍一覧のルート定義一括登録
     Route::resource('genres', GenreController::class);
+
+    // 外部ISBN検索ルート
+    Route::get('/books/isbn/{isbn}', [BookController::class, 'searchByIsbn'])
+        ->name('books.isbn.search');
 });
 
 // トップページ（/）アクセス時は書籍一覧（/books）へリダイレクト
@@ -43,3 +49,16 @@ Route::resource('books', BookController::class)->only(['index', 'show']);
 
 // ランキング画面
 Route::get('/ranking', [RankingController::class, 'index'])->name('ranking.index');
+
+// routes/web.php の一番下に追記（authミドルウェアのグループの外）
+Route::get('/reports-temp', function () {
+    return '準備中';
+})->name('reports.index');
+
+Route::get('/reading-plans-temp', function () {
+    return '準備中';
+})->name('reading-plans.index');
+
+Route::get('/notifications-temp', function () {
+    return '準備中';
+})->name('notifications.index');

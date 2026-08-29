@@ -6,21 +6,71 @@ use App\Http\Requests\StoreBookRequest;
 use App\Http\Requests\UpdateBookRequest;
 use App\Models\Book;
 use App\Models\Genre;
+use Exception;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\View\View;
 
 class BookController extends Controller
 {
     /**
      * 書籍一覧画面の表示
      */
-    public function index()
+    public function index(Request $request): View // 👈 引数に Request を追加
     {
-        // genresをEager LoadingしてN+1問題を防止。また、平均評価を効率的に取得
-        $books = Book::with('genres')
+        // 1. genresをEager LoadingしてN+1問題を防止し、平均評価とレビュー件数も効率的に取得
+        $query = Book::with('genres')
             ->withAvg('reviews', 'rating')
-            ->latest()
-            ->paginate(10);
+            ->withCount('reviews');
 
-        return view('books.index', compact('books'));
+        // 2. キーワード検索（部分一致：title または author）
+        if ($request->filled('keyword')) {
+            $keyword = $request->input('keyword');
+            // where と orWhere の論理グループ化（括弧で囲む）
+            $query->where(function ($q) use ($keyword) {
+                $q->where('title', 'like', '%'.$keyword.'%')
+                    ->orWhere('author', 'like', '%'.$keyword.'%');
+            });
+        }
+
+        // 3. ジャンルフィルタでの絞り込み
+        if ($request->filled('genre')) {
+            $genreId = $request->input('genre');
+            $query->whereHas('genres', function ($q) use ($genreId) {
+                $q->where('genres.id', $genreId);
+            });
+        }
+
+        // 4. ソート機能の適用
+        $sort = $request->input('sort', 'newest'); // 初期値として第2引数にnewestを指定
+        switch ($sort) {
+            case 'oldest': // 登録日が古い順
+                $query->orderBy('created_at', 'asc');
+                break;
+            case 'title': // タイトル昇順
+                $query->orderBy('title', 'asc');
+                break;
+            case 'rating': // 平均評価の高い順（評価がないものは最後に表示）
+                $query->orderByRaw('reviews_avg_rating IS NULL ASC')
+                    ->orderBy('reviews_avg_rating', 'desc')
+                    ->orderBy('created_at', 'desc'); // 同スコア時は新しい順
+                break;
+            case 'newest': // 登録日が新しい順（デフォルト）
+            default:
+                $query->orderBy('created_at', 'desc');
+                break;
+        }
+
+        // 5. 10件ずつのページネーション＆検索クエリ文字列の維持
+        $books = $query->paginate(10)->appends(request()->query());
+
+        // 6. 検索フォームのプルダウン用に、全ジャンルを名前順で取得
+        $genres = Genre::orderBy('name', 'asc')->get();
+
+        // ビューに books と genres を渡す
+        return view('books.index', compact('books', 'genres'));
     }
 
     /**
@@ -110,5 +160,90 @@ class BookController extends Controller
         return redirect()
             ->route('books.index')
             ->with('success', '書籍を削除しました。');
+    }
+
+    /**
+     * ISBNコードからGoogle Books APIを利用して書籍情報を検索・返却する
+     *
+     * @return JsonResponse
+     */
+    public function searchByIsbn(string $isbn)
+    {
+        // 1. バリデーション（13桁の数値であることを検証）
+        $validator = Validator::make(
+            ['isbn' => $isbn],
+            ['isbn' => ['required', 'string', 'digits:13']]
+        );
+
+        if ($validator->fails()) {
+            return response()->json([
+                'error' => 'ISBNは13桁の半角数字で入力してください。',
+            ], 422);
+        }
+
+        try {
+            // 2. Google Books API 呼び出しの準備
+            $apiUrl = config('services.google_books.url', 'https://www.googleapis.com/books/v1/volumes');
+            $apiKey = config('services.google_books.key');
+
+            $queryParams = [
+                'q' => 'isbn:'.$isbn,
+            ];
+            if ($apiKey) {
+                $queryParams['key'] = $apiKey;
+            }
+
+            // 3. APIへのリクエスト送信（Httpファサードの使用）
+            $response = Http::get($apiUrl, $queryParams);
+
+            // 4. API側で障害（500や503など）が起きている場合のエラーハンドリング
+            if (! $response->successful()) {
+                return response()->json([
+                    'error' => '書籍情報の取得に失敗しました。時間をおいて再度お試しいただくか、手動で入力してください。',
+                ], 500);
+            }
+
+            $data = $response->json();
+            $totalItems = $data['totalItems'] ?? 0;
+
+            // 5. 該当書籍が見つからなかった場合（404エラーハンドリング）
+            if ($totalItems === 0 || ! isset($data['items'][0]['volumeInfo'])) {
+                return response()->json([
+                    'error' => '書籍情報が見つかりませんでした。',
+                ], 404);
+            }
+
+            // 6. 書籍情報の抽出
+            $volumeInfo = $data['items'][0]['volumeInfo'];
+
+            $title = $volumeInfo['title'] ?? '';
+            $authors = $volumeInfo['authors'] ?? [];
+            $authorString = is_array($authors) ? implode(', ', $authors) : ''; // 著者が複数いる場合はカンマで連結
+            $description = $volumeInfo['description'] ?? '';
+
+            // 画像URL（サムネイルがあれば取得し、セキュリティエラー回避のため https に置換）
+            $imageUrl = $volumeInfo['imageLinks']['thumbnail'] ?? '';
+            if (str_starts_with($imageUrl, 'http://')) {
+                $imageUrl = str_replace('http://', 'https://', $imageUrl);
+            }
+
+            // 出版日
+            $publishedDate = $volumeInfo['publishedDate'] ?? null;
+
+            // 7. 正常系：書籍データをJSONで返却
+            return response()->json([
+                'title' => $title,
+                'author' => $authorString,
+                'description' => $description,
+                'image_url' => $imageUrl,
+                'published_date' => $publishedDate,
+            ]);
+
+        } catch (Exception $e) {
+            // 通信タイムアウトや想定外の例外が発生した場合（通信エラー時のハンドリング）
+            return response()->json([
+                'error' => '書籍情報の取得に失敗しました。時間をおいて再度お試しいただくか、手動で入力してください。',
+            ], 500);
+        }
     }
 }
