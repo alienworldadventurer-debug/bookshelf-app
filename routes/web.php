@@ -49,3 +49,16 @@ Route::resource('books', BookController::class)->only(['index', 'show']);
 
 // ランキング画面
 Route::get('/ranking', [RankingController::class, 'index'])->name('ranking.index');
+
+// routes/web.php の一番下に追記（authミドルウェアのグループの外）
+Route::get('/reports-temp', function () {
+    return '準備中';
+})->name('reports.index');
+
+Route::get('/reading-plans-temp', function () {
+    return '準備中';
+})->name('reading-plans.index');
+
+Route::get('/notifications-temp', function () {
+    return '準備中';
+})->name('notifications.index');
