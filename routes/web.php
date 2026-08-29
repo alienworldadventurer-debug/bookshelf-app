@@ -17,7 +17,9 @@ Route::middleware(['auth'])->group(function () {
 
     // レビュー編集・更新・削除用
     Route::get('/reviews/{review}/edit', [ReviewController::class, 'edit'])->name('reviews.edit');
+
     Route::put('/reviews/{review}', [ReviewController::class, 'update'])->name('reviews.update');
+
     Route::delete('/reviews/{review}', [ReviewController::class, 'destroy'])->name('reviews.destroy');
 
     // お気に入り一覧画面
@@ -31,6 +33,10 @@ Route::middleware(['auth'])->group(function () {
 
     // ジャンル管理・ジャンル別書籍一覧のルート定義一括登録
     Route::resource('genres', GenreController::class);
+
+    // 外部ISBN検索ルート
+    Route::get('/books/isbn/{isbn}', [BookController::class, 'searchByIsbn'])
+        ->name('books.isbn.search');
 });
 
 // トップページ（/）アクセス時は書籍一覧（/books）へリダイレクト
