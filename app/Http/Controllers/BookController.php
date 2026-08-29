@@ -6,21 +6,67 @@ use App\Http\Requests\StoreBookRequest;
 use App\Http\Requests\UpdateBookRequest;
 use App\Models\Book;
 use App\Models\Genre;
+use Illuminate\Http\Request;
+use Illuminate\View\View;
 
 class BookController extends Controller
 {
     /**
      * 書籍一覧画面の表示
      */
-    public function index()
+    public function index(Request $request): View // 👈 引数に Request を追加
     {
-        // genresをEager LoadingしてN+1問題を防止。また、平均評価を効率的に取得
-        $books = Book::with('genres')
+        // 1. genresをEager LoadingしてN+1問題を防止し、平均評価とレビュー件数も効率的に取得
+        $query = Book::with('genres')
             ->withAvg('reviews', 'rating')
-            ->latest()
-            ->paginate(10);
+            ->withCount('reviews');
 
-        return view('books.index', compact('books'));
+        // 2. キーワード検索（部分一致：title または author）
+        if ($request->filled('keyword')) {
+            $keyword = $request->input('keyword');
+            // where と orWhere の論理グループ化（括弧で囲む）
+            $query->where(function ($q) use ($keyword) {
+                $q->where('title', 'like', '%'.$keyword.'%')
+                    ->orWhere('author', 'like', '%'.$keyword.'%');
+            });
+        }
+
+        // 3. ジャンルフィルタでの絞り込み
+        if ($request->filled('genre')) {
+            $genreId = $request->input('genre');
+            $query->whereHas('genres', function ($q) use ($genreId) {
+                $q->where('genres.id', $genreId);
+            });
+        }
+
+        // 4. ソート機能の適用
+        $sort = $request->input('sort', 'newest'); // 初期値として第2引数にnewestを指定
+        switch ($sort) {
+            case 'oldest': // 登録日が古い順
+                $query->orderBy('created_at', 'asc');
+                break;
+            case 'title': // タイトル昇順
+                $query->orderBy('title', 'asc');
+                break;
+            case 'rating': // 平均評価の高い順（評価がないものは最後に表示）
+                $query->orderByRaw('reviews_avg_rating IS NULL ASC')
+                    ->orderBy('reviews_avg_rating', 'desc')
+                    ->orderBy('created_at', 'desc'); // 同スコア時は新しい順
+                break;
+            case 'newest': // 登録日が新しい順（デフォルト）
+            default:
+                $query->orderBy('created_at', 'desc');
+                break;
+        }
+
+        // 5. 10件ずつのページネーション＆検索クエリ文字列の維持
+        $books = $query->paginate(10)->withQueryString();
+
+        // 6. 検索フォームのプルダウン用に、全ジャンルを名前順で取得
+        $genres = Genre::orderBy('name', 'asc')->get();
+
+        // ビューに books と genres を渡す
+        return view('books.index', compact('books', 'genres'));
     }
 
     /**
