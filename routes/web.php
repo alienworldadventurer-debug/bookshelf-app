@@ -4,6 +4,7 @@ use App\Http\Controllers\BookController;
 use App\Http\Controllers\FavoriteController;
 use App\Http\Controllers\GenreController;
 use App\Http\Controllers\RankingController;
+use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\ReviewLikeController;
 use Illuminate\Support\Facades\Route;
@@ -37,6 +38,9 @@ Route::middleware(['auth'])->group(function () {
     // 外部ISBN検索ルート
     Route::get('/books/isbn/{isbn}', [BookController::class, 'searchByIsbn'])
         ->name('books.isbn.search');
+
+    // マイ読書レポート (PG14) 登録ユーザー専用
+    Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
 });
 
 // トップページ（/）アクセス時は書籍一覧（/books）へリダイレクト
@@ -51,10 +55,6 @@ Route::resource('books', BookController::class)->only(['index', 'show']);
 Route::get('/ranking', [RankingController::class, 'index'])->name('ranking.index');
 
 // routes/web.php の一番下に追記（authミドルウェアのグループの外）
-Route::get('/reports-temp', function () {
-    return '準備中';
-})->name('reports.index');
-
 Route::get('/reading-plans-temp', function () {
     return '準備中';
 })->name('reading-plans.index');
