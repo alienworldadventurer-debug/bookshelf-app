@@ -37,7 +37,7 @@ class UpdateGenreRequest extends FormRequest
     {
         return [
             'name.required' => 'ジャンル名は必須項目です。',
-            'name.string' => 'ジャンル名はテキスト形式で入力してください。',
+            'name.string' => 'ジャンル名は文字列で入力してください。',
             'name.max' => 'ジャンル名は255文字以内で入力してください。',
             'name.unique' => 'このジャンル名は既に存在します。',
         ];
