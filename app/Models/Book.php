@@ -23,6 +23,13 @@ class Book extends Model
     ];
 
     /**
+     * 属性のキャスト（型変換）設定
+     */
+    protected $casts = [
+        'published_date' => 'date', // 👈 これを追記して、自動的に日付型に変換させます！
+    ];
+
+    /**
      * 書籍を登録したユーザー（多対1）
      */
     public function user(): BelongsTo
