@@ -52,6 +52,21 @@ class ReportController extends Controller
         $ratingDistribution = collect([0 => 0, 1 => 0, 2 => 0, 3 => 0, 4 => 0])
             ->replace($mappedDistribution);
 
+        // ====== 【タスク5】高評価書籍 TOP5 の集計（Collection活用） ======
+        // 1. 評価が 4 以上のレビューのみに絞り込み、評価の高い順（降順）に並べ替え、最大 5 件を抽出する
+        $topRatedBooks = $reviews->filter(fn ($review) => $review->rating >= 4)
+            ->sortByDesc('rating')
+            ->take(5)
+            // 2. Blade側のアクセス形式（連想配列）に合うように、各データを必要なキーにマッピングする
+            ->map(fn ($review) => [
+                'id' => $review->book->id,
+                'title' => $review->book->title,
+                'author' => $review->book->author,
+                'rating' => $review->rating,
+            ])
+            ->values() // コレクションのインデックス（キー）を「0, 1, 2...」に綺麗にリセットする
+            ->toArray();
+
         $stats = [
             'summary' => [
                 'total_reviews' => $totalReviews,
@@ -59,7 +74,7 @@ class ReportController extends Controller
                 'average_rating' => $averageRating,
             ],
             'rating_distribution' => $ratingDistribution,
-            'top_rated_books' => [], // 後のタスクで実装します
+            'top_rated_books' => $topRatedBooks,
             'genre_ratings' => [],   // 後のタスクで実装します
         ];
 
