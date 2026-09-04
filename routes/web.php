@@ -3,7 +3,9 @@
 use App\Http\Controllers\BookController;
 use App\Http\Controllers\FavoriteController;
 use App\Http\Controllers\GenreController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\RankingController;
+use App\Http\Controllers\ReadingPlanController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\ReviewLikeController;
@@ -41,6 +43,27 @@ Route::middleware(['auth'])->group(function () {
 
     // マイ読書レポート (PG14) 登録ユーザー専用
     Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
+
+    // ==========================================
+    // 読書計画（Reading Plans）関連
+    // ==========================================
+    // show（詳細画面）以外のCRUDを一括で定義します（except仕様）
+    Route::resource('reading-plans', ReadingPlanController::class)->except(['show']);
+
+    // 読了アクション（カスタムPOSTルート）
+    Route::post('reading-plans/{plan}/complete', [ReadingPlanController::class, 'complete'])
+        ->name('reading-plans.complete');
+
+    // ==========================================
+    // 通知（Notifications）関連
+    // ==========================================
+    // 通知一覧の表示（GET）
+    Route::get('notifications', [NotificationController::class, 'index'])
+        ->name('notifications.index');
+
+    // 通知の既読化（POST）
+    Route::post('notifications/{id}/read', [NotificationController::class, 'read'])
+        ->name('notifications.read');
 });
 
 // トップページ（/）アクセス時は書籍一覧（/books）へリダイレクト
@@ -53,12 +76,3 @@ Route::resource('books', BookController::class)->only(['index', 'show']);
 
 // ランキング画面
 Route::get('/ranking', [RankingController::class, 'index'])->name('ranking.index');
-
-// routes/web.php の一番下に追記（authミドルウェアのグループの外）
-Route::get('/reading-plans-temp', function () {
-    return '準備中';
-})->name('reading-plans.index');
-
-Route::get('/notifications-temp', function () {
-    return '準備中';
-})->name('notifications.index');
