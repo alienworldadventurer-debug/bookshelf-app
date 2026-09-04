@@ -13,12 +13,12 @@ class ReadingPlanReminder extends Notification
     /**
      * トリガーとなった読書計画モデル
      */
-    protected ReadingPlan $readingPlan;
+    public ReadingPlan $readingPlan;
 
     /**
      * 通知タイミング ('three_days_before' | 'on_due_date' | 'three_days_after')
      */
-    protected string $timing;
+    public string $timing;
 
     /**
      * 新しい通知インスタンスを生成します。
