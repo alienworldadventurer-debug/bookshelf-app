@@ -98,28 +98,36 @@ class BookControllerTest extends TestCase
     }
 
     /**
-     * 指定したソート順（最新順・古い順・評価順）で書籍が正しく並び替わること
+     * 指定したソート順（最新順・古い順・タイトル順・評価順）で書籍が正しく並び替わること
      */
     public function test_index_sorts_books_correctly(): void
     {
         // Arrange (準備)
         $user = User::factory()->create();
 
-        // ★ Book::create ではなく、Book::factory()->create に修正！
+        // 登録日順、タイトル順が明確に異なる3冊を作成（作成時間に差をつける）
         $book1 = Book::factory()->create([
             'user_id' => $user->id,
-            'title' => '吾輩は猫である',
+            'title' => 'A_Book_吾輩は猫である',
             'author' => '夏目漱石',
-            'created_at' => now()->subDays(3), // 3日前の作成日時が正しく保持されます
+            'created_at' => now()->subDays(3),
         ]);
 
         $book2 = Book::factory()->create([
             'user_id' => $user->id,
-            'title' => 'リーダブルコード',
+            'title' => 'C_Book_リーダブルコード',
             'author' => 'Dustin Boswell',
-            'created_at' => now(), // 現在の作成日時が正しく保持されます
+            'created_at' => now(),
         ]);
 
+        $book3 = Book::factory()->create([
+            'user_id' => $user->id,
+            'title' => 'B_Book_坊っちゃん',
+            'author' => '夏目漱石',
+            'created_at' => now()->subDays(1),
+        ]);
+
+        // 評価の設定 (book1: 5.0, book3: 2.0, book2: レビューなし)
         Review::create([
             'user_id' => $user->id,
             'book_id' => $book1->id,
@@ -128,22 +136,79 @@ class BookControllerTest extends TestCase
         ]);
         Review::create([
             'user_id' => $user->id,
-            'book_id' => $book2->id,
+            'book_id' => $book3->id,
             'rating' => 2,
             'comment' => '内容が薄い印象。',
         ]);
 
-        // Act & Assert (最新順 - newest)
+        // --------------------------------------------------
+        // 1. 最新順 (newest: book2 -> book3 -> book1)
+        // --------------------------------------------------
         $responseNewest = $this->get(route('books.index', ['sort' => 'newest']));
-        $responseNewest->assertSeeInOrder(['リーダブルコード', '吾輩は猫である']);
+        $booksNewest = $responseNewest->original->getData()['books'];
+        $this->assertEquals($book2->id, $booksNewest[0]->id);
+        $this->assertEquals($book3->id, $booksNewest[1]->id);
+        $this->assertEquals($book1->id, $booksNewest[2]->id);
 
-        // Act & Assert (古い順 - oldest)
+        // --------------------------------------------------
+        // 2. 古い順 (oldest: book1 -> book3 -> book2)
+        // --------------------------------------------------
         $responseOldest = $this->get(route('books.index', ['sort' => 'oldest']));
-        $responseOldest->assertSeeInOrder(['吾輩は猫である', 'リーダブルコード']);
+        $booksOldest = $responseOldest->original->getData()['books'];
+        $this->assertEquals($book1->id, $booksOldest[0]->id);
+        $this->assertEquals($book3->id, $booksOldest[1]->id);
+        $this->assertEquals($book2->id, $booksOldest[2]->id);
 
-        // Act & Assert (評価順 - rating)
+        // --------------------------------------------------
+        // 3. タイトル順 (title: book1(A) -> book3(B) -> book2(C))
+        // --------------------------------------------------
+        $responseTitle = $this->get(route('books.index', ['sort' => 'title']));
+        $booksTitle = $responseTitle->original->getData()['books'];
+        $this->assertEquals($book1->id, $booksTitle[0]->id);
+        $this->assertEquals($book3->id, $booksTitle[1]->id);
+        $this->assertEquals($book2->id, $booksTitle[2]->id);
+
+        // --------------------------------------------------
+        // 4. 評価順 (rating: book1(5点) -> book3(2点) -> book2(レビューなし) 👈 ここが最重要ポイント！)
+        // --------------------------------------------------
         $responseRating = $this->get(route('books.index', ['sort' => 'rating']));
-        $responseRating->assertSeeInOrder(['吾輩は猫である', 'リーダブルコード']);
+        $booksRating = $responseRating->original->getData()['books'];
+        $this->assertEquals($book1->id, $booksRating[0]->id); // 高評価
+        $this->assertEquals($book3->id, $booksRating[1]->id); // 低評価
+        $this->assertEquals($book2->id, $booksRating[2]->id); // レビューなしが一番最後
+    }
+
+    /**
+     * 検索・絞り込み・ソート条件がページネーションリンクに正しく引き継がれること
+     */
+    public function test_index_pagination_retains_query_parameters(): void
+    {
+        // Arrange (準備): ジャンルを1つ用意
+        $user = User::factory()->create();
+        $genre = Genre::create(['name' => '小説']);
+
+        // 1ページ最大10件のため、条件に合う書籍を11件作って2ページ目が発生するようにする
+        Book::factory()->count(11)->create(['user_id' => $user->id])->each(function ($book) use ($genre) {
+            $book->genres()->attach($genre->id);
+            $book->update(['title' => 'Laravel_Book_'.$book->id]);
+        });
+
+        // Act (実行): 検索、絞り込み、ソートを組み合わせて一覧をリクエスト
+        $response = $this->get(route('books.index', [
+            'keyword' => 'Laravel',
+            'genre' => $genre->id,
+            'sort' => 'title',
+        ]));
+
+        // Assert (検証)
+        $response->assertStatus(200);
+        $books = $response->original->getData()['books'];
+
+        // 2ページ目へのリンクに、指定したクエリパラメータがすべて引き継がれているかを検証
+        $nextPageUrl = $books->nextPageUrl();
+        $this->assertStringContainsString('keyword=Laravel', $nextPageUrl);
+        $this->assertStringContainsString('genre='.$genre->id, $nextPageUrl);
+        $this->assertStringContainsString('sort=title', $nextPageUrl);
     }
 
     /**
