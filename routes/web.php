@@ -51,7 +51,7 @@ Route::middleware(['auth'])->group(function () {
     Route::resource('reading-plans', ReadingPlanController::class)->except(['show']);
 
     // 読了アクション（カスタムPOSTルート）
-    Route::post('reading-plans/{plan}/complete', [ReadingPlanController::class, 'complete'])
+    Route::post('reading-plans/{reading_plan}/complete', [ReadingPlanController::class, 'complete'])
         ->name('reading-plans.complete');
 
     // ==========================================
