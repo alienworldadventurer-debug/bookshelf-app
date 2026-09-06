@@ -144,7 +144,7 @@ class ApiBookControllerTest extends TestCase
 
         $response->assertStatus(404)
             ->assertJson([
-                'message' => '指定された書籍が見つかりません。',
+                'error' => '指定された書籍が見つかりません。',
             ]);
     }
 
@@ -306,7 +306,7 @@ class ApiBookControllerTest extends TestCase
 
         $response->assertStatus(404)
             ->assertJson([
-                'message' => '指定された書籍が見つかりません。',
+                'error' => '指定された書籍が見つかりません。',
             ]);
     }
 
@@ -342,7 +342,7 @@ class ApiBookControllerTest extends TestCase
 
         $response->assertStatus(404)
             ->assertJson([
-                'message' => '指定された書籍が見つかりません。',
+                'error' => '指定された書籍が見つかりません。',
             ]);
     }
 
@@ -402,11 +402,11 @@ class ApiBookControllerTest extends TestCase
             'genres' => [$genre->id],
         ]);
         $responseUpdate->assertStatus(403)
-            ->assertJson(['message' => 'This action is unauthorized.']);
+            ->assertJson(['error' => 'この操作を実行する権限がありません。']);
 
         // 2. 他人の書籍を削除しようとした場合 -> 403
         $responseDelete = $this->deleteJson("/api/v1/books/{$book->id}");
         $responseDelete->assertStatus(403)
-            ->assertJson(['message' => 'This action is unauthorized.']);
+            ->assertJson(['error' => 'この操作を実行する権限がありません。']);
     }
 }
