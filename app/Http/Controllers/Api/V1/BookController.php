@@ -38,14 +38,14 @@ class BookController extends Controller
             });
         }
 
-        // 1ページあたりの件数（デフォルトは10件）
-        $perPage = (int) $request->input('per_page', 10);
+        // 1ページあたりの件数（デフォルトは20件）
+        $perPage = (int) $request->input('per_page', 20);
 
         // N+1対策としてEager Loadingと集計クエリを実行
         $books = $query->with(['genres'])
             ->withAvg('reviews', 'rating')
             ->withCount('reviews')
-            ->orderBy('id', 'desc') // 最新登録順
+            ->orderBy('id', 'desc')
             ->paginate($perPage);
 
         return BookResource::collection($books);
