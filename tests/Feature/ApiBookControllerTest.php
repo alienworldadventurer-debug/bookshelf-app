@@ -94,6 +94,23 @@ class ApiBookControllerTest extends TestCase
     }
 
     /**
+     * パラメータ未指定時に、デフォルトの「20件」でページネーションされるかを検証します。
+     */
+    public function test_can_get_paginated_book_list_with_default_per_page(): void
+    {
+        $genre = Genre::factory()->create();
+        // デフォルト20件の挙動を検証するため、あえて21冊作成します
+        Book::factory()->count(21)->hasAttached($genre)->create();
+
+        // 💡 per_pageパラメータを指定せずにリクエスト
+        $response = $this->getJson('/api/v1/books');
+
+        $response->assertStatus(200)
+            ->assertJsonCount(20, 'data') // 20件取得できていること
+            ->assertJsonPath('meta.per_page', 20); // メタ情報のper_pageが20であること
+    }
+
+    /**
      * 無効な検索パラメータを送信した際に、422バリデーションエラーが返却されるかを検証します。
      */
     public function test_get_book_list_validation_error(): void
