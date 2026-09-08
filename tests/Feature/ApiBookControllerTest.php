@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Book;
 use App\Models\Genre;
+use App\Models\Review;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
@@ -127,8 +128,17 @@ class ApiBookControllerTest extends TestCase
      */
     public function test_can_get_book_detail_with_correct_structure(): void
     {
+        $user = User::factory()->create();
         $genre = Genre::factory()->create();
         $book = Book::factory()->hasAttached($genre)->create();
+
+        // テスト用書籍に紐づくレビューを1件作成
+        Review::factory()->create([
+            'book_id' => $book->id,
+            'user_id' => $user->id,
+            'rating' => 5,
+            'comment' => '素晴らしい本でした！',
+        ]);
 
         $response = $this->getJson("/api/v1/books/{$book->id}");
 
@@ -145,7 +155,15 @@ class ApiBookControllerTest extends TestCase
                     'genres',
                     'reviews_avg_rating',
                     'reviews_count',
-                    'reviews',
+                    'reviews' => [
+                        '*' => [
+                            'id',
+                            'user_name',
+                            'rating',
+                            'comment',
+                            'created_at',
+                        ],
+                    ],
                     'created_at',
                     'updated_at',
                 ],
