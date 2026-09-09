@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Notifications\DatabaseNotification;
 use Illuminate\View\View;
 
 class NotificationController extends Controller
@@ -32,12 +33,15 @@ class NotificationController extends Controller
      */
     public function read(string $id): RedirectResponse
     {
-        // 【セキュリティ・所有者チェックの徹底】
-        // ログインユーザー自身の未読通知（unreadNotifications）の中から対象IDを検索します。
-        // もし他人の通知IDや、存在しないIDが送信されてきた場合は「404 Not Found」として安全に弾き飛ばします。
-        $notification = auth()->user()->unreadNotifications()->findOrFail($id);
+        // 1. 全通知データから対象IDの通知を取得（存在しないIDの場合は 404 Not Found）
+        $notification = DatabaseNotification::findOrFail($id);
 
-        // read_at カラムに現在日時をセットして「既読」にします
+        // 2. 所有者チェック：通知の宛先がログインユーザー自身でない場合は 403 Forbidden エラーを発生
+        if ((int) $notification->notifiable_id !== auth()->id()) {
+            abort(403);
+        }
+
+        // 3. read_at カラムに現在日時をセットして「既読」にします
         $notification->markAsRead();
 
         // 成功のフラッシュメッセージを伴って、元の通知一覧画面へリダイレクトバックします
