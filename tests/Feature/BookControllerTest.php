@@ -343,6 +343,27 @@ class BookControllerTest extends TestCase
     }
 
     /**
+     * ISBN検索時、文字列型以外の不正なデータ型（配列・数値・真偽値・Null等）が送信された際、
+     * 422バリデーションエラーとなり「ISBNは正しい形式で入力してください。」が返却されること。
+     */
+    public function test_isbn_search_returns_422_for_non_string_data_types(): void
+    {
+        // Arrange (準備)
+        $user = User::factory()->create();
+
+        // Act (実行) : GETパラメータとして isbn に配列データを渡す
+        $response = $this->actingAs($user)->json('GET', '/books/isbn/dummy', [
+            'isbn' => ['9784798157573'], // 文字列ではなく配列データ型を直接送信
+        ]);
+
+        // Assert (検証) : 422エラーおよび要件シート通りのメッセージ返却を確認
+        $response->assertStatus(422)
+            ->assertJson([
+                'error' => 'ISBNは正しい形式で入力してください。',
+            ]);
+    }
+
+    /**
      * 外部APIの接続障害が発生した場合、復旧を促すメッセージと500エラーを返却すること
      */
     public function test_isbn_search_returns_500_on_api_connection_error(): void

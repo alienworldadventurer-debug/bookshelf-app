@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Book;
 use App\Models\Genre;
+use App\Models\Review;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
@@ -127,8 +128,17 @@ class ApiBookControllerTest extends TestCase
      */
     public function test_can_get_book_detail_with_correct_structure(): void
     {
+        $user = User::factory()->create();
         $genre = Genre::factory()->create();
         $book = Book::factory()->hasAttached($genre)->create();
+
+        // テスト用書籍に紐づくレビューを1件作成
+        Review::factory()->create([
+            'book_id' => $book->id,
+            'user_id' => $user->id,
+            'rating' => 5,
+            'comment' => '素晴らしい本でした！',
+        ]);
 
         $response = $this->getJson("/api/v1/books/{$book->id}");
 
@@ -145,7 +155,15 @@ class ApiBookControllerTest extends TestCase
                     'genres',
                     'reviews_avg_rating',
                     'reviews_count',
-                    'reviews',
+                    'reviews' => [
+                        '*' => [
+                            'id',
+                            'user_name',
+                            'rating',
+                            'comment',
+                            'created_at',
+                        ],
+                    ],
                     'created_at',
                     'updated_at',
                 ],
@@ -162,6 +180,26 @@ class ApiBookControllerTest extends TestCase
         $response->assertStatus(404)
             ->assertJson([
                 'error' => '指定された書籍が見つかりません。',
+            ]);
+    }
+
+    /**
+     * per_pageパラメータに100を超える値を指定した際、
+     * 422エラーとなり、正しく最大値制限のバリデーションエラーが発生することを検証します。
+     */
+    public function test_get_book_list_validation_error_max_per_page(): void
+    {
+        // 100を超える「101」を指定してリクエストを送信
+        $response = $this->getJson('/api/v1/books?per_page=101');
+
+        $response->assertStatus(422)
+            // 422エラーの共通トップレベルメッセージを検証
+            ->assertJson([
+                'message' => '入力内容に不備があります。',
+            ])
+            // per_pageキーに対して、要件シート通りの日本語エラーメッセージが返っているかを厳密に検証
+            ->assertJsonValidationErrors([
+                'per_page' => '1ページあたりの件数は100以下の値を指定してください。',
             ]);
     }
 

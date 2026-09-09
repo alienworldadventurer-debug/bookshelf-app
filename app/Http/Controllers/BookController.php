@@ -167,17 +167,25 @@ class BookController extends Controller
      *
      * @return JsonResponse
      */
-    public function searchByIsbn(string $isbn)
+    public function searchByIsbn(Request $request, string $isbn)
     {
-        // 1. バリデーション（13桁の数値であることを検証）
+        // クエリやJSON等に 'isbn' パラメータがあれば優先し、なければルートパラメータを使用
+        $inputIsbn = $request->input('isbn', $isbn);
+
+        // 1. バリデーション（メッセージを個別定義）
         $validator = Validator::make(
-            ['isbn' => $isbn],
-            ['isbn' => ['required', 'string', 'digits:13']]
+            ['isbn' => $inputIsbn],
+            ['isbn' => ['required', 'bail', 'string', 'digits:13']],
+            [
+                'isbn.required' => 'ISBNコードは必須です。',
+                'isbn.string' => 'ISBNは正しい形式で入力してください。',
+                'isbn.digits' => 'ISBNは13桁の半角数字で入力してください。',
+            ]
         );
 
         if ($validator->fails()) {
             return response()->json([
-                'error' => 'ISBNは13桁の半角数字で入力してください。',
+                'error' => $validator->errors()->first('isbn'),
             ], 422);
         }
 
