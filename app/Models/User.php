@@ -44,12 +44,10 @@ class User extends Authenticatable
         'password' => 'hashed',
     ];
 
-    // ==========================================
-    // リレーション定義 (ユーザー関連)
-    // ==========================================
-
     /**
-     * ユーザーが登録した書籍一覧（1対多）
+     * ユーザーが登録した書籍を取得する。
+     *
+     * @return HasMany<Book, User>
      */
     public function books(): HasMany
     {
@@ -57,7 +55,9 @@ class User extends Authenticatable
     }
 
     /**
-     * ユーザーが投稿したレビュー一覧（1対多）
+     * ユーザーが投稿したレビューを取得する。
+     *
+     * @return HasMany<Review, User>
      */
     public function reviews(): HasMany
     {
@@ -65,7 +65,9 @@ class User extends Authenticatable
     }
 
     /**
-     * ユーザーがお気に入り登録した書籍一覧（多対多）
+     * ユーザーがお気に入り登録した書籍を取得する。
+     *
+     * @return BelongsToMany<Book, User>
      */
     public function favoriteBooks(): BelongsToMany
     {
@@ -73,7 +75,9 @@ class User extends Authenticatable
     }
 
     /**
-     * ユーザーが「いいね」したレビュー一覧（多対多）
+     * ユーザーがいいねしたレビューを取得する。
+     *
+     * @return BelongsToMany<Review, User>
      */
     public function likedReviews(): BelongsToMany
     {
@@ -81,7 +85,9 @@ class User extends Authenticatable
     }
 
     /**
-     * ユーザーが所有する読書計画一覧を取得
+     * ユーザーが所有する読書計画を取得する。
+     *
+     * @return HasMany<ReadingPlan, User>
      */
     public function readingPlans(): HasMany
     {

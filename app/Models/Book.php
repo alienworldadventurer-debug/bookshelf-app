@@ -22,15 +22,14 @@ class Book extends Model
         'image_url',
     ];
 
-    /**
-     * 属性のキャスト（型変換）設定
-     */
     protected $casts = [
-        'published_date' => 'date', // 👈 これを追記して、自動的に日付型に変換させます！
+        'published_date' => 'date',
     ];
 
     /**
-     * 書籍を登録したユーザー（多対1）
+     * 書籍を登録したユーザーを取得する。
+     *
+     * @return BelongsTo<User, Book>
      */
     public function user(): BelongsTo
     {
@@ -38,7 +37,9 @@ class Book extends Model
     }
 
     /**
-     * 書籍に紐づくジャンル（多対多）
+     * 書籍に紐づくジャンルを取得する。
+     *
+     * @return BelongsToMany<Genre, Book>
      */
     public function genres(): BelongsToMany
     {
@@ -46,7 +47,9 @@ class Book extends Model
     }
 
     /**
-     * 書籍に投稿されたレビュー一覧（1対多）
+     * 書籍に投稿されたレビューを取得する。
+     *
+     * @return HasMany<Review, Book>
      */
     public function reviews(): HasMany
     {
@@ -54,7 +57,9 @@ class Book extends Model
     }
 
     /**
-     * この書籍をお気に入り登録しているユーザー一覧（多対多）
+     * この書籍をお気に入り登録しているユーザーを取得する。
+     *
+     * @return BelongsToMany<User, Book>
      */
     public function favoritedByUsers(): BelongsToMany
     {
@@ -62,7 +67,9 @@ class Book extends Model
     }
 
     /**
-     * アクセサ: レビューの平均評価値を取得 (BookTest検証用)
+     * レビューの平均評価値を取得する。
+     *
+     * @return float レビューがない場合は0.0
      */
     public function getReviewsAvgRatingAttribute(): float
     {
@@ -70,7 +77,9 @@ class Book extends Model
     }
 
     /**
-     * アクセサ: レビュー総件数を取得 (BookTest検証用)
+     * レビュー総件数を取得する。
+     *
+     * @return int レビューの件数
      */
     public function getReviewsCountAttribute(): int
     {
@@ -78,7 +87,9 @@ class Book extends Model
     }
 
     /**
-     * 書籍に関連する読書計画一覧を取得
+     * 書籍に関連する読書計画を取得する。
+     *
+     * @return HasMany<ReadingPlan, Book>
      */
     public function readingPlans(): HasMany
     {

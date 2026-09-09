@@ -19,9 +19,6 @@ class ReadingPlan extends Model
 {
     use HasFactory;
 
-    /**
-     * 複数代入可能な属性
-     */
     protected $fillable = [
         'user_id',
         'book_id',
@@ -30,17 +27,16 @@ class ReadingPlan extends Model
         'completed_at',
     ];
 
-    /**
-     * 属性のキャストルール
-     */
     protected $casts = [
-        'status' => ReadingPlanStatus::class, // Enumにキャスト
+        'status' => ReadingPlanStatus::class,
         'target_date' => 'date',
         'completed_at' => 'datetime',
     ];
 
     /**
-     * 計画を所有するユーザーとの多対1リレーション
+     * 計画を所有するユーザーを取得する。
+     *
+     * @return BelongsTo<User, ReadingPlan>
      */
     public function user(): BelongsTo
     {
@@ -48,19 +44,20 @@ class ReadingPlan extends Model
     }
 
     /**
-     * 対象の書籍との多対1リレーション
+     * 計画の対象となる書籍を取得する。
+     *
+     * @return BelongsTo<Book, ReadingPlan>
      */
     public function book(): BelongsTo
     {
         return $this->belongsTo(Book::class);
     }
 
-    // ==========================================
-    // クエリスコープ（Scopes）の整備
-    // ==========================================
-
     /**
-     * 進行中の計画のみに絞り込むスコープ
+     * 進行中の計画にクエリを絞り込む。
+     *
+     * @param  Builder<ReadingPlan>  $query
+     * @return Builder<ReadingPlan>
      */
     public function scopeInProgress(Builder $query): Builder
     {
@@ -68,7 +65,10 @@ class ReadingPlan extends Model
     }
 
     /**
-     * 読了済みの計画のみに絞り込むスコープ
+     * 読了済みの計画にクエリを絞り込む。
+     *
+     * @param  Builder<ReadingPlan>  $query
+     * @return Builder<ReadingPlan>
      */
     public function scopeCompleted(Builder $query): Builder
     {
@@ -76,7 +76,10 @@ class ReadingPlan extends Model
     }
 
     /**
-     * 期限切れの計画のみに絞り込むスコープ
+     * 期限切れの計画にクエリを絞り込む。
+     *
+     * @param  Builder<ReadingPlan>  $query
+     * @return Builder<ReadingPlan>
      */
     public function scopeExpired(Builder $query): Builder
     {
@@ -84,8 +87,10 @@ class ReadingPlan extends Model
     }
 
     /**
-     * 自動失効バッチ用のスコープ
-     * （ステータスが進行中、かつ期日が昨日以前のものを抽出する）
+     * 自動失効対象の計画にクエリを絞り込む。
+     *
+     * @param  Builder<ReadingPlan>  $query
+     * @return Builder<ReadingPlan>
      */
     public function scopeOverdue(Builder $query): Builder
     {
@@ -93,12 +98,10 @@ class ReadingPlan extends Model
             ->where('target_date', '<', Carbon::today());
     }
 
-    // ==========================================
-    // カスタムヘルパーメソッド
-    // ==========================================
-
     /**
-     * 現在、計画が期日を過ぎている（期限切れ状態であるべきか）判定する
+     * 計画が進行中で期日を過ぎているか判定する。
+     *
+     * @return bool 今日より前の日付であればtrue
      */
     public function isOverdue(): bool
     {

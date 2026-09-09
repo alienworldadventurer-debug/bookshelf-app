@@ -15,7 +15,9 @@ class Genre extends Model
     ];
 
     /**
-     * このジャンルに紐づく書籍一覧（多対多）
+     * このジャンルに紐づく書籍を取得する。
+     *
+     * @return BelongsToMany<Book, Genre>
      */
     public function books(): BelongsToMany
     {
