@@ -8,16 +8,19 @@ use Illuminate\Http\Resources\Json\JsonResource;
 class ReviewResource extends JsonResource
 {
     /**
-     * リソースを配列に変換します。
+     * レビューリソースをAPIレスポンス用の配列に変換する。
+     *
+     * @param  Request  $request  現在のHTTPリクエスト
+     * @return array<string, mixed> レビュー情報のシリアライズ結果
      */
     public function toArray(Request $request): array
     {
         return [
             'id' => $this->id,
-            'user_name' => $this->user ? $this->user->name : null, // 投稿ユーザーの氏名を取得
+            'user_name' => $this->user ? $this->user->name : null,
             'rating' => $this->rating,
             'comment' => $this->comment,
-            'created_at' => $this->created_at ? $this->created_at->toIso8601String() : null, // ISO 8601形式
+            'created_at' => $this->created_at ? $this->created_at->toIso8601String() : null,
         ];
     }
 }
