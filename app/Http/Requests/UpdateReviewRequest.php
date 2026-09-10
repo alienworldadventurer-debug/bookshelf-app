@@ -7,7 +7,9 @@ use Illuminate\Foundation\Http\FormRequest;
 class UpdateReviewRequest extends FormRequest
 {
     /**
-     * リクエストの認可チェック
+     * リクエストを実行する権限があるか判断する。
+     *
+     * @return bool リクエストを許可する場合はtrue
      */
     public function authorize(): bool
     {
@@ -15,7 +17,9 @@ class UpdateReviewRequest extends FormRequest
     }
 
     /**
-     * バリデーションルールの定義
+     * レビュー更新に使用するバリデーションルールを返す。
+     *
+     * @return array<string, array<int, string>> バリデーションルール
      */
     public function rules(): array
     {
@@ -26,7 +30,9 @@ class UpdateReviewRequest extends FormRequest
     }
 
     /**
-     * 日本語エラーメッセージの定義
+     * バリデーションエラーメッセージを返す。
+     *
+     * @return array<string, string> 入力項目ごとのエラーメッセージ
      */
     public function messages(): array
     {

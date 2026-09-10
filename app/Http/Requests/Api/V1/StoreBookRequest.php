@@ -9,7 +9,9 @@ use Illuminate\Http\Exceptions\HttpResponseException;
 class StoreBookRequest extends FormRequest
 {
     /**
-     * ユーザーがこのリクエストを実行する権限があるか判断。
+     * リクエストを実行する権限があるか判断する。
+     *
+     * @return bool リクエストを許可する場合はtrue
      */
     public function authorize(): bool
     {
@@ -17,7 +19,9 @@ class StoreBookRequest extends FormRequest
     }
 
     /**
-     * バリデーションルール。
+     * 書籍登録に使用するバリデーションルールを返す。
+     *
+     * @return array<string, array<int, string>> バリデーションルール
      */
     public function rules(): array
     {
@@ -34,7 +38,9 @@ class StoreBookRequest extends FormRequest
     }
 
     /**
-     * 日本語エラーメッセージ。
+     * バリデーションエラーメッセージを返す。
+     *
+     * @return array<string, string> 入力項目ごとのエラーメッセージ
      */
     public function messages(): array
     {
@@ -67,16 +73,16 @@ class StoreBookRequest extends FormRequest
     }
 
     /**
-     * バリデーション失敗時の挙動を上書き（オーバーライド）
+     * バリデーション失敗時にAPI形式のエラーを返す。
      *
-     * Laravel標準のエラーメッセージを封じ込め、
-     * API仕様書に完全準拠したエラーJSONを強制的に返却します。
+     * @param  Validator  $validator  バリデーション結果
+     * @return never 常にHttpResponseExceptionを送出する
      */
-    protected function failedValidation(Validator $validator)
+    protected function failedValidation(Validator $validator): never
     {
         throw new HttpResponseException(response()->json([
-            'message' => '入力内容に不備があります。', // 仕様書指定のメッセージ
-            'errors' => $validator->errors(),           // 具体的なエラー内容一覧
-        ], 422)); // ステータスコード 422（Unprocessable Entity）
+            'message' => '入力内容に不備があります。',
+            'errors' => $validator->errors(),
+        ], 422));
     }
 }

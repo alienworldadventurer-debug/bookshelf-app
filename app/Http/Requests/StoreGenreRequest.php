@@ -7,7 +7,9 @@ use Illuminate\Foundation\Http\FormRequest;
 class StoreGenreRequest extends FormRequest
 {
     /**
-     * ユーザーがこのリクエストを行う権限があるかどうかを判定します
+     * リクエストを実行する権限があるか判断する。
+     *
+     * @return bool リクエストを許可する場合はtrue
      */
     public function authorize(): bool
     {
@@ -15,7 +17,9 @@ class StoreGenreRequest extends FormRequest
     }
 
     /**
-     * リクエストに適用するバリデーションルールを定義します
+     * ジャンル登録に使用するバリデーションルールを返す。
+     *
+     * @return array<string, array<int, string>> バリデーションルール
      */
     public function rules(): array
     {
@@ -25,7 +29,9 @@ class StoreGenreRequest extends FormRequest
     }
 
     /**
-     * 定義済みバリデーションルールのエラーメッセージを取得します
+     * バリデーションエラーメッセージを返す。
+     *
+     * @return array<string, string> 入力項目ごとのエラーメッセージ
      */
     public function messages(): array
     {
