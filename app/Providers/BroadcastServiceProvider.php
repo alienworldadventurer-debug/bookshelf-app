@@ -8,7 +8,7 @@ use Illuminate\Support\ServiceProvider;
 class BroadcastServiceProvider extends ServiceProvider
 {
     /**
-     * Bootstrap any application services.
+     * ブロードキャストのルートとチャンネル認証を登録する。
      */
     public function boot(): void
     {
