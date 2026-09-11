@@ -10,14 +10,12 @@ use Illuminate\Database\Seeder;
 class BookSeeder extends Seeder
 {
     /**
-     * Run the database seeds.
+     * 書籍とジャンルの初期データを登録する。
      */
     public function run(): void
     {
-        // 全ユーザーを取得
         $users = User::all();
 
-        // ユーザーが1人も登録されていない場合は安全に処理を中断
         if ($users->isEmpty()) {
             return;
         }
@@ -113,22 +111,21 @@ class BookSeeder extends Seeder
             ],
         ];
 
-        foreach ($books as $index => $bookData) {
+        collect($books)->each(function (array $bookData) use ($users): void {
             $genreNames = $bookData['genres'];
-            unset($bookData['genres']);
+            $bookAttributes = [
+                ...$bookData,
+                'user_id' => $users->random()->id,
+            ];
+            unset($bookAttributes['genres']);
 
-            // 5人のユーザーの中からランダムに1人を選んで割り当てる
-            $bookData['user_id'] = $users->random()->id;
-
-            // firstOrCreate でISBN重複登録を防ぎながら作成
             $book = Book::firstOrCreate(
-                ['isbn' => $bookData['isbn']],
-                $bookData
+                ['isbn' => $bookAttributes['isbn']],
+                $bookAttributes
             );
 
-            // 紐づくジャンルのIDをマスタから引いて中間テーブルへ同期
             $genreIds = Genre::whereIn('name', $genreNames)->pluck('id')->toArray();
             $book->genres()->sync($genreIds);
-        }
+        });
     }
 }

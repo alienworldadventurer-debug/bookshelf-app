@@ -9,7 +9,9 @@ use Illuminate\Support\Facades\Hash;
 class UserSeeder extends Seeder
 {
     /**
-     * Run the database seeds.
+     * 初期ユーザーを登録する。
+     *
+     * メールアドレスを一意キーとして既存ユーザーの重複作成を防止する。
      */
     public function run(): void
     {
@@ -21,11 +23,11 @@ class UserSeeder extends Seeder
             ['name' => '高橋健太', 'email' => 'takahashi@example.com', 'password' => Hash::make('password')],
         ];
 
-        foreach ($users as $userData) {
+        collect($users)->each(function (array $userData): void {
             User::firstOrCreate(
                 ['email' => $userData['email']],
                 $userData
             );
-        }
+        });
     }
 }
