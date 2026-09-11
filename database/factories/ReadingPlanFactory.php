@@ -12,20 +12,25 @@ use Illuminate\Database\Eloquent\Factories\Factory;
  */
 class ReadingPlanFactory extends Factory
 {
+    /**
+     * 生成対象のモデルクラスを指定する。
+     *
+     * @var class-string<ReadingPlan>
+     */
     protected $model = ReadingPlan::class;
 
     /**
-     * Define the model's default state.
+     * 読書計画のテストデータを定義する。
      *
-     * @return array<string, mixed>
+     * @return array<string, mixed> 読書計画の属性データ
      */
     public function definition(): array
     {
         return [
             'user_id' => User::factory(),
             'book_id' => Book::factory(),
-            'target_date' => now()->addDays(7)->format('Y-m-d'), // デフォルトは今日から7日後
-            'status' => 'in_progress', // デフォルトは「進行中」
+            'target_date' => now()->addDays(7)->format('Y-m-d'),
+            'status' => 'in_progress',
         ];
     }
 }

@@ -8,12 +8,22 @@ use Illuminate\Database\Eloquent\Factories\Factory;
 
 class BookFactory extends Factory
 {
+    /**
+     * 生成対象のモデルクラスを指定する。
+     *
+     * @var class-string<Book>
+     */
     protected $model = Book::class;
 
+    /**
+     * 書籍のテストデータを定義する。
+     *
+     * @return array<string, mixed> 書籍の属性データ
+     */
     public function definition(): array
     {
         return [
-            'user_id' => User::factory(), // 自動的にUserも作成して紐付けます
+            'user_id' => User::factory(),
             'title' => $this->faker->sentence(3),
             'author' => $this->faker->name(),
             'isbn' => $this->faker->unique()->isbn13(),
