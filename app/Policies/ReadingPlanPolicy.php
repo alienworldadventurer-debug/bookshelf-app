@@ -16,8 +16,7 @@ class ReadingPlanPolicy
      */
     public function update(User $user, ReadingPlan $readingPlan): bool
     {
-        // ログインユーザーのIDと、計画の所有者IDが一致するかを検証します
-        return $user->id === $readingPlan->user_id;
+        return $this->ownsPlan($user, $readingPlan);
     }
 
     /**
@@ -29,7 +28,18 @@ class ReadingPlanPolicy
      */
     public function delete(User $user, ReadingPlan $readingPlan): bool
     {
-        // ログインユーザーのIDと、計画の所有者IDが一致するかを検証します
+        return $this->ownsPlan($user, $readingPlan);
+    }
+
+    /**
+     * 読書計画がユーザーの所有であるか判定します。
+     *
+     * @param  User  $user  ログイン中のユーザーインスタンス
+     * @param  ReadingPlan  $readingPlan  対象となる読書計画インスタンス
+     * @return bool ユーザーが計画を所有している場合はtrue
+     */
+    private function ownsPlan(User $user, ReadingPlan $readingPlan): bool
+    {
         return $user->id === $readingPlan->user_id;
     }
 }
