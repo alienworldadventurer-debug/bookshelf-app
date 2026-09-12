@@ -11,18 +11,21 @@ use Illuminate\View\View;
 class GenreController extends Controller
 {
     /**
-     * ジャンル一覧画面の表示 (index)
+     * ジャンル一覧画面を表示する。
+     *
+     * @return View ジャンル一覧画面
      */
     public function index(): View
     {
-        // 各ジャンルに紐づく書籍数を自動カウントして取得します
         $genres = Genre::withCount('books')->get();
 
         return view('genres.index', ['genres' => $genres]);
     }
 
     /**
-     * ジャンル登録画面の表示 (create)
+     * ジャンル登録画面を表示する。
+     *
+     * @return View ジャンル登録画面
      */
     public function create(): View
     {
@@ -30,11 +33,13 @@ class GenreController extends Controller
     }
 
     /**
-     * ジャンルの新規登録処理 (store)
+     * ジャンルを新規登録する。
+     *
+     * @param  StoreGenreRequest  $request  登録するジャンル情報
+     * @return RedirectResponse ジャンル一覧画面へのリダイレクト
      */
     public function store(StoreGenreRequest $request): RedirectResponse
     {
-        // バリデーション済みのデータで新規登録
         Genre::create($request->validated());
 
         return redirect()->route('genres.index')
@@ -42,11 +47,13 @@ class GenreController extends Controller
     }
 
     /**
-     * ジャンル詳細画面（ジャンル別書籍一覧）の表示 (show)
+     * ジャンルに紐づく書籍一覧を表示する。
+     *
+     * @param  Genre  $genre  表示対象のジャンル
+     * @return View ジャンル詳細画面
      */
     public function show(Genre $genre): View
     {
-        // 選択されたジャンルに紐づく書籍を10件/ページでページネーション取得します
         $books = $genre->books()->paginate(10);
 
         return view('genres.show', [
@@ -56,7 +63,10 @@ class GenreController extends Controller
     }
 
     /**
-     * ジャンル編集画面の表示 (edit)
+     * ジャンル編集画面を表示する。
+     *
+     * @param  Genre  $genre  編集対象のジャンル
+     * @return View ジャンル編集画面
      */
     public function edit(Genre $genre): View
     {
@@ -64,11 +74,14 @@ class GenreController extends Controller
     }
 
     /**
-     * ジャンルの更新処理 (update)
+     * ジャンルを更新する。
+     *
+     * @param  UpdateGenreRequest  $request  更新するジャンル情報
+     * @param  Genre  $genre  更新対象のジャンル
+     * @return RedirectResponse ジャンル一覧画面へのリダイレクト
      */
     public function update(UpdateGenreRequest $request, Genre $genre): RedirectResponse
     {
-        // バリデーション済みのデータで更新
         $genre->update($request->validated());
 
         return redirect()->route('genres.index')
@@ -76,17 +89,18 @@ class GenreController extends Controller
     }
 
     /**
-     * ジャンルの削除処理 (destroy)
+     * 書籍に紐づいていないジャンルを削除する。
+     *
+     * @param  Genre  $genre  削除対象のジャンル
+     * @return RedirectResponse ジャンル一覧画面へのリダイレクト
      */
     public function destroy(Genre $genre): RedirectResponse
     {
-        // 【ビジネスルール】書籍が1冊でも紐づいているジャンルは削除を拒否する
         if ($genre->books()->exists()) {
             return redirect()->route('genres.index')
                 ->with('error', 'このジャンルには書籍が紐付いているため削除できません。');
         }
 
-        // 紐づく書籍がない場合のみ物理削除を実行
         $genre->delete();
 
         return redirect()->route('genres.index')

@@ -7,7 +7,9 @@ use App\Http\Requests\UpdateBookRequest;
 use App\Models\Book;
 use App\Models\Genre;
 use Exception;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Validator;
@@ -16,83 +18,78 @@ use Illuminate\View\View;
 class BookController extends Controller
 {
     /**
-     * 書籍一覧画面の表示
+     * 書籍一覧画面を表示する。
+     *
+     * @param  Request  $request  検索、絞り込み、ソート条件を含むリクエスト
+     * @return View 書籍一覧画面
      */
-    public function index(Request $request): View // 👈 引数に Request を追加
+    public function index(Request $request): View
     {
-        // 1. genresをEager LoadingしてN+1問題を防止し、平均評価とレビュー件数も効率的に取得
         $query = Book::with('genres')
             ->withAvg('reviews', 'rating')
             ->withCount('reviews');
 
-        // 2. キーワード検索（部分一致：title または author）
         if ($request->filled('keyword')) {
             $keyword = $request->input('keyword');
-            // where と orWhere の論理グループ化（括弧で囲む）
-            $query->where(function ($q) use ($keyword) {
+            $query->where(function (Builder $q) use ($keyword): void {
                 $q->where('title', 'like', '%'.$keyword.'%')
                     ->orWhere('author', 'like', '%'.$keyword.'%');
             });
         }
 
-        // 3. ジャンルフィルタでの絞り込み
         if ($request->filled('genre')) {
             $genreId = $request->input('genre');
-            $query->whereHas('genres', function ($q) use ($genreId) {
+            $query->whereHas('genres', function (Builder $q) use ($genreId): void {
                 $q->where('genres.id', $genreId);
             });
         }
 
-        // 4. ソート機能の適用
-        $sort = $request->input('sort', 'newest'); // 初期値として第2引数にnewestを指定
+        $sort = $request->input('sort', 'newest');
         switch ($sort) {
-            case 'oldest': // 登録日が古い順
+            case 'oldest':
                 $query->orderBy('created_at', 'asc');
                 break;
-            case 'title': // タイトル昇順
+            case 'title':
                 $query->orderBy('title', 'asc');
                 break;
-            case 'rating': // 平均評価の高い順（評価がないものは最後に表示）
+            case 'rating':
                 $query->orderByRaw('reviews_avg_rating IS NULL ASC')
                     ->orderBy('reviews_avg_rating', 'desc')
-                    ->orderBy('created_at', 'desc'); // 同スコア時は新しい順
+                    ->orderBy('created_at', 'desc');
                 break;
-            case 'newest': // 登録日が新しい順（デフォルト）
+            case 'newest':
             default:
                 $query->orderBy('created_at', 'desc');
                 break;
         }
 
-        // 5. 10件ずつのページネーション＆検索クエリ文字列の維持
         $books = $query->paginate(10)->appends(request()->query());
-
-        // 6. 検索フォームのプルダウン用に、全ジャンルを名前順で取得
         $genres = Genre::orderBy('name', 'asc')->get();
 
-        // ビューに books と genres を渡す
         return view('books.index', compact('books', 'genres'));
     }
 
     /**
-     * 書籍登録画面の表示
+     * 書籍登録画面を表示する。
+     *
+     * @return View 書籍登録画面
      */
-    public function create()
+    public function create(): View
     {
-        // フォーム内で選択可能なジャンルマスタを全件取得して渡す
         $genres = Genre::all();
 
         return view('books.create', compact('genres'));
     }
 
     /**
-     * 新規書籍のDB保存処理
+     * 新規書籍を保存する。
+     *
+     * @param  StoreBookRequest  $request  書籍情報を含むリクエスト
+     * @return RedirectResponse 書籍一覧画面へのリダイレクト
      */
-    public function store(StoreBookRequest $request)
+    public function store(StoreBookRequest $request): RedirectResponse
     {
-        // ログイン中のユーザーに紐づけて書籍レコードを作成（user_idを自動注入）
         $book = auth()->user()->books()->create($request->validated());
-
-        // 中間テーブル（book_genre）にジャンル紐付けを登録
         $book->genres()->attach($request->genres);
 
         return redirect()
@@ -101,25 +98,27 @@ class BookController extends Controller
     }
 
     /**
-     * 書籍詳細画面の表示
+     * 書籍詳細画面を表示する。
+     *
+     * @param  Book  $book  表示対象の書籍
+     * @return View 書籍詳細画面
      */
-    public function show(Book $book)
+    public function show(Book $book): View
     {
-        // 詳細ビュー内でループ表示されるレビューの投稿者（user）のN+1問題を解決
         $book->load(['genres', 'reviews.user']);
-
-        // 平均評価の計算ロジック（reviews_avg_rating）を正確に動的ロード
         $book->loadAvg('reviews', 'rating');
 
         return view('books.show', compact('book'));
     }
 
     /**
-     * 書籍編集画面の表示
+     * 書籍編集画面を表示する。
+     *
+     * @param  Book  $book  編集対象の書籍
+     * @return View 書籍編集画面
      */
-    public function edit(Book $book)
+    public function edit(Book $book): View
     {
-        // 所有者チェック（Policy適用）：本人以外は403 Forbidden
         $this->authorize('update', $book);
 
         $genres = Genre::all();
@@ -128,17 +127,16 @@ class BookController extends Controller
     }
 
     /**
-     * 書籍情報の更新処理
+     * 書籍情報を更新する。
+     *
+     * @param  UpdateBookRequest  $request  更新内容を含むリクエスト
+     * @param  Book  $book  更新対象の書籍
+     * @return RedirectResponse 書籍詳細画面へのリダイレクト
      */
-    public function update(UpdateBookRequest $request, Book $book)
+    public function update(UpdateBookRequest $request, Book $book): RedirectResponse
     {
-        // 所有者チェック（Policy適用）
         $this->authorize('update', $book);
-
-        // 書籍基本情報の更新
         $book->update($request->validated());
-
-        // 中間テーブル（book_genre）のジャンル紐付けを完全に同期（不要なものは削除され追加分のみ登録）
         $book->genres()->sync($request->genres);
 
         return redirect()
@@ -147,14 +145,14 @@ class BookController extends Controller
     }
 
     /**
-     * 書籍データの削除処理
+     * 書籍を削除する。
+     *
+     * @param  Book  $book  削除対象の書籍
+     * @return RedirectResponse 書籍一覧画面へのリダイレクト
      */
-    public function destroy(Book $book)
+    public function destroy(Book $book): RedirectResponse
     {
-        // 所有者チェック（Policy適用）
         $this->authorize('delete', $book);
-
-        // 書籍を削除（テーブル仕様の物理削除制約により、関連レコードも自動でカスケード削除されます）
         $book->delete();
 
         return redirect()
@@ -165,14 +163,13 @@ class BookController extends Controller
     /**
      * ISBNコードからGoogle Books APIを利用して書籍情報を検索・返却する
      *
-     * @return JsonResponse
+     * @param  Request  $request  ISBNコードを含むリクエスト
+     * @param  string  $isbn  ルートパラメータのISBNコード
      */
-    public function searchByIsbn(Request $request, string $isbn)
+    public function searchByIsbn(Request $request, string $isbn): JsonResponse
     {
-        // クエリやJSON等に 'isbn' パラメータがあれば優先し、なければルートパラメータを使用
         $inputIsbn = $request->input('isbn', $isbn);
 
-        // 1. バリデーション（メッセージを個別定義）
         $validator = Validator::make(
             ['isbn' => $inputIsbn],
             ['isbn' => ['required', 'bail', 'string', 'digits:13']],
@@ -190,21 +187,18 @@ class BookController extends Controller
         }
 
         try {
-            // 2. Google Books API 呼び出しの準備
             $apiUrl = config('services.google_books.url', 'https://www.googleapis.com/books/v1/volumes');
             $apiKey = config('services.google_books.key');
 
             $queryParams = [
-                'q' => 'isbn:'.$isbn,
+                'q' => 'isbn:'.$inputIsbn,
             ];
             if ($apiKey) {
                 $queryParams['key'] = $apiKey;
             }
 
-            // 3. APIへのリクエスト送信（Httpファサードの使用）
             $response = Http::get($apiUrl, $queryParams);
 
-            // 4. API側で障害（500や503など）が起きている場合のエラーハンドリング
             if (! $response->successful()) {
                 return response()->json([
                     'error' => '書籍情報の取得に失敗しました。時間をおいて再度お試しいただくか、手動で入力してください。',
@@ -214,31 +208,26 @@ class BookController extends Controller
             $data = $response->json();
             $totalItems = $data['totalItems'] ?? 0;
 
-            // 5. 該当書籍が見つからなかった場合（404エラーハンドリング）
             if ($totalItems === 0 || ! isset($data['items'][0]['volumeInfo'])) {
                 return response()->json([
                     'error' => '書籍情報が見つかりませんでした。',
                 ], 404);
             }
 
-            // 6. 書籍情報の抽出
             $volumeInfo = $data['items'][0]['volumeInfo'];
 
             $title = $volumeInfo['title'] ?? '';
             $authors = $volumeInfo['authors'] ?? [];
-            $authorString = is_array($authors) ? implode(', ', $authors) : ''; // 著者が複数いる場合はカンマで連結
+            $authorString = is_array($authors) ? implode(', ', $authors) : '';
             $description = $volumeInfo['description'] ?? '';
 
-            // 画像URL（サムネイルがあれば取得し、セキュリティエラー回避のため https に置換）
             $imageUrl = $volumeInfo['imageLinks']['thumbnail'] ?? '';
             if (str_starts_with($imageUrl, 'http://')) {
                 $imageUrl = str_replace('http://', 'https://', $imageUrl);
             }
 
-            // 出版日
             $publishedDate = $volumeInfo['publishedDate'] ?? null;
 
-            // 7. 正常系：書籍データをJSONで返却
             return response()->json([
                 'title' => $title,
                 'author' => $authorString,
@@ -246,9 +235,7 @@ class BookController extends Controller
                 'image_url' => $imageUrl,
                 'published_date' => $publishedDate,
             ]);
-
         } catch (Exception $e) {
-            // 通信タイムアウトや想定外の例外が発生した場合（通信エラー時のハンドリング）
             return response()->json([
                 'error' => '書籍情報の取得に失敗しました。時間をおいて再度お試しいただくか、手動で入力してください。',
             ], 500);

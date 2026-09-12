@@ -19,7 +19,9 @@ class Review extends Model
     ];
 
     /**
-     * レビューを投稿したユーザー（多対1）
+     * レビューを投稿したユーザーを取得する。
+     *
+     * @return BelongsTo<User, Review>
      */
     public function user(): BelongsTo
     {
@@ -27,7 +29,9 @@ class Review extends Model
     }
 
     /**
-     * レビュー対象の書籍（多対1）
+     * レビュー対象の書籍を取得する。
+     *
+     * @return BelongsTo<Book, Review>
      */
     public function book(): BelongsTo
     {
@@ -35,7 +39,9 @@ class Review extends Model
     }
 
     /**
-     * このレビューにいいねをしたユーザー一覧（多対多）
+     * このレビューにいいねをしたユーザーを取得する。
+     *
+     * @return BelongsToMany<User, Review>
      */
     public function likedByUsers(): BelongsToMany
     {

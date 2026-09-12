@@ -10,24 +10,14 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
-/**
- * Class ApiBookControllerTest
- *
- * 公開API（AP01〜AP06）における認証・認可、および各種CRUD処理とフィルタリング・バリデーションを検証するテストクラス。
- * 応用機能の開発プロセス要件に適合するため、全メソッドへの型宣言およびPHPDocを適用しています。
- */
 class ApiBookControllerTest extends TestCase
 {
     use RefreshDatabase;
 
     /**
-     * =========================================================================
-     * GET（読み取り系）：認証不要のエンドポイントテスト
-     * =========================================================================
-     */
-
-    /**
      * 正しいJSON構造で書籍一覧が取得できることを検証します。
+     *
+     * @return void 書籍一覧のレスポンス構造が期待どおりであることを確認する
      */
     public function test_can_get_book_list_with_correct_structure(): void
     {
@@ -59,6 +49,8 @@ class ApiBookControllerTest extends TestCase
 
     /**
      * キーワードとジャンルIDを指定して、正しく書籍一覧をフィルタリングできるかを検証します。
+     *
+     * @return void 条件に一致する書籍のみが返ることを確認する
      */
     public function test_can_filter_book_list_by_keyword_and_genre(): void
     {
@@ -77,6 +69,8 @@ class ApiBookControllerTest extends TestCase
 
     /**
      * 正しくページネーションされた書籍一覧（1ページあたり指定件数）が取得できるかを検証します。
+     *
+     * @return void 指定件数とページネーションメタデータが返ることを確認する
      */
     public function test_can_get_paginated_book_list(): void
     {
@@ -96,23 +90,25 @@ class ApiBookControllerTest extends TestCase
 
     /**
      * パラメータ未指定時に、デフォルトの「20件」でページネーションされるかを検証します。
+     *
+     * @return void 既定の1ページ件数が20件であることを確認する
      */
     public function test_can_get_paginated_book_list_with_default_per_page(): void
     {
         $genre = Genre::factory()->create();
-        // デフォルト20件の挙動を検証するため、あえて21冊作成します
         Book::factory()->count(21)->hasAttached($genre)->create();
 
-        // 💡 per_pageパラメータを指定せずにリクエスト
         $response = $this->getJson('/api/v1/books');
 
         $response->assertStatus(200)
-            ->assertJsonCount(20, 'data') // 20件取得できていること
-            ->assertJsonPath('meta.per_page', 20); // メタ情報のper_pageが20であること
+            ->assertJsonCount(20, 'data')
+            ->assertJsonPath('meta.per_page', 20);
     }
 
     /**
      * 無効な検索パラメータを送信した際に、422バリデーションエラーが返却されるかを検証します。
+     *
+     * @return void 無効な検索条件に対するエラー形式を確認する
      */
     public function test_get_book_list_validation_error(): void
     {
@@ -125,6 +121,8 @@ class ApiBookControllerTest extends TestCase
 
     /**
      * 正しいJSON構造で指定された書籍の詳細情報が取得できるかを検証します。
+     *
+     * @return void 書籍詳細と関連レビューのレスポンス構造を確認する
      */
     public function test_can_get_book_detail_with_correct_structure(): void
     {
@@ -132,7 +130,6 @@ class ApiBookControllerTest extends TestCase
         $genre = Genre::factory()->create();
         $book = Book::factory()->hasAttached($genre)->create();
 
-        // テスト用書籍に紐づくレビューを1件作成
         Review::factory()->create([
             'book_id' => $book->id,
             'user_id' => $user->id,
@@ -172,6 +169,8 @@ class ApiBookControllerTest extends TestCase
 
     /**
      * 存在しない書籍IDを指定して詳細取得を試みた場合、404 Not Found が返却されるかを検証します。
+     *
+     * @return void 存在しない書籍に対して404が返ることを確認する
      */
     public function test_get_book_detail_not_found(): void
     {
@@ -186,42 +185,34 @@ class ApiBookControllerTest extends TestCase
     /**
      * per_pageパラメータに100を超える値を指定した際、
      * 422エラーとなり、正しく最大値制限のバリデーションエラーが発生することを検証します。
+     *
+     * @return void per_pageの上限超過に対するエラー内容を確認する
      */
     public function test_get_book_list_validation_error_max_per_page(): void
     {
-        // 100を超える「101」を指定してリクエストを送信
         $response = $this->getJson('/api/v1/books?per_page=101');
 
         $response->assertStatus(422)
-            // 422エラーの共通トップレベルメッセージを検証
             ->assertJson([
                 'message' => '入力内容に不備があります。',
             ])
-            // per_pageキーに対して、要件シート通りの日本語エラーメッセージが返っているかを厳密に検証
             ->assertJsonValidationErrors([
                 'per_page' => '1ページあたりの件数は100以下の値を指定してください。',
             ]);
     }
 
     /**
-     * =========================================================================
-     * POST/PUT/DELETE（書き込み系）：要Sanctum認証テスト
-     * =========================================================================
-     */
-
-    /**
      * 認証済みのユーザーが、新規書籍を正しく登録できること（作成者IDが自動設定されること）を検証します。
+     *
+     * @return void 書籍が作成され、認証ユーザーが登録者になることを確認する
      */
     public function test_can_store_book(): void
     {
-        // 1. テストユーザーを作成
         $user = User::factory()->create();
         $genre = Genre::factory()->create();
 
-        // 2. Sanctum疑似ログインを有効化
         Sanctum::actingAs($user);
 
-        // 3. user_id パラメータは送信しない（コントローラーが自動セットする実仕様を検証）
         $response = $this->postJson('/api/v1/books', [
             'title' => 'テスト書籍',
             'author' => 'テスト著者',
@@ -232,7 +223,6 @@ class ApiBookControllerTest extends TestCase
             'genres' => [$genre->id],
         ]);
 
-        // 4. 201 Created レスポンスと、作成者IDにログイン中のユーザーIDがセットされていることを検証
         $response->assertStatus(201);
         $this->assertDatabaseHas('books', [
             'title' => 'テスト書籍',
@@ -242,6 +232,8 @@ class ApiBookControllerTest extends TestCase
 
     /**
      * 必須項目が欠落している場合に、422バリデーションエラーとなるかを検証します。
+     *
+     * @return void 必須項目のバリデーションエラーを確認する
      */
     public function test_store_book_validation_error_missing_fields(): void
     {
@@ -256,6 +248,8 @@ class ApiBookControllerTest extends TestCase
 
     /**
      * 存在しないジャンルIDを指定して書籍登録を試みた場合、バリデーションエラーとなるかを検証します。
+     *
+     * @return void 存在しないジャンルIDが拒否されることを確認する
      */
     public function test_store_book_validation_error_master_existence(): void
     {
@@ -265,7 +259,7 @@ class ApiBookControllerTest extends TestCase
         $response = $this->postJson('/api/v1/books', [
             'title' => 'テスト書籍',
             'author' => 'テスト著者',
-            'genres' => [99999], // 存在しないジャンルID
+            'genres' => [99999],
         ]);
 
         $response->assertStatus(422)
@@ -274,6 +268,8 @@ class ApiBookControllerTest extends TestCase
 
     /**
      * 重複するISBNを送信して書籍を登録しようとした場合、バリデーションエラーとなるかを検証します。
+     *
+     * @return void ISBN重複時のバリデーションエラーを確認する
      */
     public function test_store_book_validation_error_duplicate_isbn(): void
     {
@@ -295,6 +291,8 @@ class ApiBookControllerTest extends TestCase
 
     /**
      * 書籍の登録者が、自身の所有する書籍情報を正常に更新できるかを検証します。
+     *
+     * @return void 所有者による書籍更新が成功することを確認する
      */
     public function test_can_update_book(): void
     {
@@ -323,6 +321,8 @@ class ApiBookControllerTest extends TestCase
 
     /**
      * 書籍更新時に、他書籍と重複するISBNを指定した場合にバリデーションエラーとなるかを検証します。
+     *
+     * @return void ISBN重複時の更新拒否を確認する
      */
     public function test_update_book_validation_error_duplicate_isbn(): void
     {
@@ -331,12 +331,12 @@ class ApiBookControllerTest extends TestCase
 
         $genre = Genre::factory()->create();
         $book = Book::factory()->create(['user_id' => $owner->id, 'isbn' => '9784101010014']);
-        Book::factory()->create(['isbn' => '9784101010021']); // 他書籍に登録済みのISBN
+        Book::factory()->create(['isbn' => '9784101010021']);
 
         $response = $this->putJson("/api/v1/books/{$book->id}", [
             'title' => '更新タイトル',
             'author' => '更新著者',
-            'isbn' => '9784101010021', // 重複エラー対象
+            'isbn' => '9784101010021',
             'genres' => [$genre->id],
         ]);
 
@@ -346,6 +346,8 @@ class ApiBookControllerTest extends TestCase
 
     /**
      * 存在しない書籍IDを指定して更新を試みた場合、404 Not Found が返却されるかを検証します。
+     *
+     * @return void 存在しない書籍の更新に404が返ることを確認する
      */
     public function test_update_book_not_found(): void
     {
@@ -367,6 +369,8 @@ class ApiBookControllerTest extends TestCase
 
     /**
      * 書籍の登録者が、自身の所有する書籍情報を正常に物理削除できるかを検証します。
+     *
+     * @return void 所有者による書籍削除とデータ消失を確認する
      */
     public function test_can_delete_book(): void
     {
@@ -387,6 +391,8 @@ class ApiBookControllerTest extends TestCase
 
     /**
      * 存在しない書籍IDを指定して削除を試みた場合、404 Not Found が返却されるかを検証します。
+     *
+     * @return void 存在しない書籍の削除に404が返ることを確認する
      */
     public function test_delete_book_not_found(): void
     {
@@ -402,20 +408,15 @@ class ApiBookControllerTest extends TestCase
     }
 
     /**
-     * =========================================================================
-     * 【新規追加】応用フェーズ用の異常系テスト（未認証 / 未認可）
-     * =========================================================================
-     */
-
-    /**
      * 未認証（ゲスト）が書き込み系エンドポイント（POST/PUT/DELETE）にアクセスした際に、Sanctumにより一律で 401 Unauthorized が返却されることを検証します。
+     *
+     * @return void 未認証の書き込み操作が401で拒否されることを確認する
      */
     public function test_unauthenticated_request_returns_401(): void
     {
         $genre = Genre::factory()->create();
         $book = Book::factory()->create();
 
-        // 1. 新規登録（未認証） -> 401
         $this->postJson('/api/v1/books', [
             'title' => '未認証書籍',
             'author' => '未認証著者',
@@ -423,7 +424,6 @@ class ApiBookControllerTest extends TestCase
         ])->assertStatus(401)
             ->assertJson(['message' => 'Unauthenticated.']);
 
-        // 2. 書籍更新（未認証） -> 401
         $this->putJson("/api/v1/books/{$book->id}", [
             'title' => '未認証更新',
             'author' => '未認証更新著者',
@@ -431,7 +431,6 @@ class ApiBookControllerTest extends TestCase
         ])->assertStatus(401)
             ->assertJson(['message' => 'Unauthenticated.']);
 
-        // 3. 書籍削除（未認証） -> 401
         $this->deleteJson("/api/v1/books/{$book->id}")
             ->assertStatus(401)
             ->assertJson(['message' => 'Unauthenticated.']);
@@ -439,6 +438,8 @@ class ApiBookControllerTest extends TestCase
 
     /**
      * 認証済みユーザーであっても、他人の所有する書籍に対して更新・削除を実行しようとした際に、BookPolicyにより 403 Forbidden が返却されることを検証します。
+     *
+     * @return void 所有者以外の更新・削除が403で拒否されることを確認する
      */
     public function test_other_users_book_operation_returns_403(): void
     {
@@ -450,7 +451,6 @@ class ApiBookControllerTest extends TestCase
 
         Sanctum::actingAs($otherUser);
 
-        // 1. 他人の書籍を更新しようとした場合 -> 403
         $responseUpdate = $this->putJson("/api/v1/books/{$book->id}", [
             'title' => '乗っ取りタイトル',
             'author' => '乗っ取り著者',
@@ -459,7 +459,6 @@ class ApiBookControllerTest extends TestCase
         $responseUpdate->assertStatus(403)
             ->assertJson(['error' => 'この操作を実行する権限がありません。']);
 
-        // 2. 他人の書籍を削除しようとした場合 -> 403
         $responseDelete = $this->deleteJson("/api/v1/books/{$book->id}");
         $responseDelete->assertStatus(403)
             ->assertJson(['error' => 'この操作を実行する権限がありません。']);

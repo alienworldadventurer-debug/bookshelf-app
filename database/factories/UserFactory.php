@@ -13,14 +13,14 @@ use Illuminate\Support\Str;
 class UserFactory extends Factory
 {
     /**
-     * The current password being used by the factory.
+     * ファクトリで使用する現在のパスワードを保持する。
      */
     protected static ?string $password;
 
     /**
-     * Define the model's default state.
+     * ユーザーのテストデータを定義する。
      *
-     * @return array<string, mixed>
+     * @return array<string, mixed> ユーザーの属性データ
      */
     public function definition(): array
     {
@@ -34,11 +34,13 @@ class UserFactory extends Factory
     }
 
     /**
-     * Indicate that the model's email address should be unverified.
+     * メールアドレス未認証の状態を定義する。
+     *
+     * @return static 未認証状態を適用したファクトリ
      */
     public function unverified(): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn (array $attributes): array => [
             'email_verified_at' => null,
         ]);
     }

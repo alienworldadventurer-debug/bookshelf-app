@@ -8,16 +8,23 @@ use App\Models\User;
 class BookPolicy
 {
     /**
-     * 書籍を編集・更新できるか判定
+     * 書籍を編集・更新できるか判定する。
+     *
+     * @param  User  $user  認証済みユーザー
+     * @param  Book  $book  対象書籍
+     * @return bool 更新を許可する場合はtrue
      */
     public function update(User $user, Book $book): bool
     {
-        // ログイン中のユーザーIDと、書籍の登録者IDが一致している場合のみ許可
         return $user->id === $book->user_id;
     }
 
     /**
-     * 書籍を削除できるか判定
+     * 書籍を削除できるか判定する。
+     *
+     * @param  User  $user  認証済みユーザー
+     * @param  Book  $book  対象書籍
+     * @return bool 削除を許可する場合はtrue
      */
     public function delete(User $user, Book $book): bool
     {

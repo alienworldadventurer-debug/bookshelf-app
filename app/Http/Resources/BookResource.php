@@ -3,12 +3,16 @@
 namespace App\Http\Resources;
 
 use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 class BookResource extends JsonResource
 {
     /**
-     * リソースを配列に変換します。
+     * 書籍リソースをAPIレスポンス用の配列に変換する。
+     *
+     * @param  Request  $request  現在のHTTPリクエスト
+     * @return array<string, mixed> 書籍情報のシリアライズ結果
      */
     public function toArray(Request $request): array
     {
@@ -20,15 +24,12 @@ class BookResource extends JsonResource
             'published_date' => $this->published_date,
             'description' => $this->description,
             'image_url' => $this->image_url,
-            // genresリレーションがロードされていれば、GenreResource形式で出力
             'genres' => GenreResource::collection($this->whenLoaded('genres')),
 
-            // 平均評価（reviews_avg_rating）を小数第1位で出力（なければ null）
             'reviews_avg_rating' => $this->reviews_avg_rating !== null ? (float) number_format($this->reviews_avg_rating, 1) : null,
             'reviews_count' => (int) $this->reviews_count,
 
-            // reviewsリレーションがロードされている（詳細API）場合のみ、ReviewResource形式の配列をネストする
-            'reviews' => $this->whenLoaded('reviews', function () {
+            'reviews' => $this->whenLoaded('reviews', function (): AnonymousResourceCollection {
                 return ReviewResource::collection($this->reviews);
             }),
 

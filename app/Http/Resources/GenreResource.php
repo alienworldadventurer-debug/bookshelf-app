@@ -8,7 +8,10 @@ use Illuminate\Http\Resources\Json\JsonResource;
 class GenreResource extends JsonResource
 {
     /**
-     * リソースを配列に変換します。
+     * ジャンルリソースをAPIレスポンス用の配列に変換する。
+     *
+     * @param  Request  $request  現在のHTTPリクエスト
+     * @return array<string, mixed> ジャンル情報のシリアライズ結果
      */
     public function toArray(Request $request): array
     {

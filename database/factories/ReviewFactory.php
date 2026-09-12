@@ -9,8 +9,18 @@ use Illuminate\Database\Eloquent\Factories\Factory;
 
 class ReviewFactory extends Factory
 {
+    /**
+     * 生成対象のモデルクラスを指定する。
+     *
+     * @var class-string<Review>
+     */
     protected $model = Review::class;
 
+    /**
+     * レビューのテストデータを定義する。
+     *
+     * @return array<string, mixed> レビューの属性データ
+     */
     public function definition(): array
     {
         return [

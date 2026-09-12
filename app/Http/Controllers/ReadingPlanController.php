@@ -7,6 +7,7 @@ use App\Http\Requests\StoreReadingPlanRequest;
 use App\Http\Requests\UpdateReadingPlanRequest;
 use App\Models\Book;
 use App\Models\ReadingPlan;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -14,16 +15,15 @@ use Illuminate\View\View;
 class ReadingPlanController extends Controller
 {
     /**
-     * ログインユーザー自身の読書計画一覧を表示します。
+     * ログインユーザー自身の読書計画一覧を表示する。
      *
-     * @param  Request  $request  HTTPリクエストインスタンス
-     * @return View 読書計画一覧ビュー（PG15）
+     * @param  Request  $request  ステータス絞り込み条件を含むリクエスト
+     * @return View 読書計画一覧ビュー
      */
     public function index(Request $request): View
     {
         $currentStatus = $request->query('status');
 
-        // 【N+1問題対策】リレーション先の書籍情報を Eager Loading で一括取得
         $query = auth()->user()->readingPlans()->with('book');
 
         if ($currentStatus && in_array($currentStatus, ['in_progress', 'completed', 'expired'])) {
@@ -36,14 +36,13 @@ class ReadingPlanController extends Controller
     }
 
     /**
-     * 新規読書計画作成画面を表示します。
+     * 新規読書計画作成画面を表示する。
      *
-     * @return View 読書計画作成ビュー（PG16）
+     * @return View 読書計画作成ビュー
      */
     public function create(): View
     {
-        // 進行中の計画がある本を除外するプルダウン制御
-        $books = Book::whereDoesntHave('readingPlans', function ($query) {
+        $books = Book::whereDoesntHave('readingPlans', function (Builder $query): void {
             $query->where('user_id', auth()->id())
                 ->where('status', ReadingPlanStatus::InProgress);
         })->get();
@@ -52,10 +51,10 @@ class ReadingPlanController extends Controller
     }
 
     /**
-     * 読書計画を新規登録します。
+     * 読書計画を新規登録する。
      *
-     * @param  StoreReadingPlanRequest  $request  FormRequest
-     * @return RedirectResponse リダイレクト
+     * @param  StoreReadingPlanRequest  $request  登録する読書計画情報
+     * @return RedirectResponse 読書計画一覧画面へのリダイレクト
      */
     public function store(StoreReadingPlanRequest $request): RedirectResponse
     {
@@ -72,17 +71,15 @@ class ReadingPlanController extends Controller
     }
 
     /**
-     * 読書計画の編集画面を表示します。
+     * 読書計画の編集画面を表示する。
      *
-     * @param  ReadingPlan  $readingPlan  読書計画モデル
-     * @return View|RedirectResponse 編集ビュー、またはリダイレクト
+     * @param  ReadingPlan  $readingPlan  編集対象の読書計画
+     * @return View|RedirectResponse 編集画面、または一覧画面へのリダイレクト
      */
     public function edit(ReadingPlan $readingPlan): View|RedirectResponse
     {
-        // Policyによる認可チェック（403ガード）
         $this->authorize('update', $readingPlan);
 
-        // 完了済み計画は編集不可とするガード
         if ($readingPlan->status === ReadingPlanStatus::Completed) {
             return redirect()->route('reading-plans.index')
                 ->with('error', '完了した読書計画は編集できません。');
@@ -92,11 +89,11 @@ class ReadingPlanController extends Controller
     }
 
     /**
-     * 読書計画を更新します。
+     * 読書計画を更新する。
      *
-     * @param  UpdateReadingPlanRequest  $request  FormRequest
-     * @param  ReadingPlan  $readingPlan  読書計画モデル
-     * @return RedirectResponse リダイレクト
+     * @param  UpdateReadingPlanRequest  $request  更新する読書計画情報
+     * @param  ReadingPlan  $readingPlan  更新対象の読書計画
+     * @return RedirectResponse 読書計画一覧画面へのリダイレクト
      */
     public function update(UpdateReadingPlanRequest $request, ReadingPlan $readingPlan): RedirectResponse
     {
@@ -108,7 +105,6 @@ class ReadingPlanController extends Controller
 
         $validated = $request->validated();
 
-        // 期限切れから期日を延ばした時に進行中へと自動復帰させるロジック
         $status = $readingPlan->status;
         if ($status === ReadingPlanStatus::Expired) {
             $status = ReadingPlanStatus::InProgress;
@@ -124,10 +120,10 @@ class ReadingPlanController extends Controller
     }
 
     /**
-     * 読書計画を物理削除します。
+     * 読書計画を削除する。
      *
-     * @param  ReadingPlan  $readingPlan  読書計画モデル
-     * @return RedirectResponse リダイレクト
+     * @param  ReadingPlan  $readingPlan  削除対象の読書計画
+     * @return RedirectResponse 読書計画一覧画面へのリダイレクト
      */
     public function destroy(ReadingPlan $readingPlan): RedirectResponse
     {
@@ -140,10 +136,10 @@ class ReadingPlanController extends Controller
     }
 
     /**
-     * 読書計画を「読了（完了）」状態にします。
+     * 読書計画を完了状態にする。
      *
-     * @param  ReadingPlan  $readingPlan  読書計画モデル
-     * @return RedirectResponse リダイレクト
+     * @param  ReadingPlan  $readingPlan  完了対象の読書計画
+     * @return RedirectResponse 読書計画一覧画面へのリダイレクト
      */
     public function complete(ReadingPlan $readingPlan): RedirectResponse
     {

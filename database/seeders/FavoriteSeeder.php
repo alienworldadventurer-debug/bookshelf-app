@@ -9,7 +9,7 @@ use Illuminate\Database\Seeder;
 class FavoriteSeeder extends Seeder
 {
     /**
-     * Run the database seeds.
+     * ユーザーごとにランダムな書籍をお気に入りへ登録する。
      */
     public function run(): void
     {
@@ -20,12 +20,11 @@ class FavoriteSeeder extends Seeder
             return;
         }
 
-        foreach ($users as $user) {
-            // ランダムに3〜5冊を抽出して紐付け
-            $favCount = rand(3, 5);
+        $users->each(function (User $user) use ($books): void {
+            $favCount = min(random_int(3, 5), $books->count());
             $randomBookIds = $books->random($favCount)->pluck('id')->toArray();
 
             $user->favoriteBooks()->syncWithoutDetaching($randomBookIds);
-        }
+        });
     }
 }

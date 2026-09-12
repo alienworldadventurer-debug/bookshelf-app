@@ -12,6 +12,11 @@ class ReviewTest extends TestCase
 {
     use RefreshDatabase;
 
+    /**
+     * レビューが投稿ユーザーに属することを検証する。
+     *
+     * @return void userリレーションが対象ユーザーを返すことを確認する
+     */
     public function test_review_belongs_to_user(): void
     {
         $user = User::factory()->create();
@@ -21,6 +26,11 @@ class ReviewTest extends TestCase
         $this->assertEquals($user->id, $review->user->id);
     }
 
+    /**
+     * レビューが対象書籍に属することを検証する。
+     *
+     * @return void bookリレーションが対象書籍を返すことを確認する
+     */
     public function test_review_belongs_to_book(): void
     {
         $book = Book::factory()->create();
@@ -30,12 +40,16 @@ class ReviewTest extends TestCase
         $this->assertEquals($book->id, $review->book->id);
     }
 
+    /**
+     * レビューが複数ユーザーから「いいね」されることを検証する。
+     *
+     * @return void 紐付けた2人のユーザーを取得できることを確認する
+     */
     public function test_review_is_liked_by_many_users(): void
     {
         $review = Review::factory()->create();
         $users = User::factory()->count(2)->create();
 
-        // 中間テーブル（review_likes）への紐付けテスト
         $review->likedByUsers()->attach($users->pluck('id')->toArray());
 
         $this->assertCount(2, $review->likedByUsers);

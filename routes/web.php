@@ -9,70 +9,54 @@ use App\Http\Controllers\ReadingPlanController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\ReviewLikeController;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Route;
 
-// 認証必須ルート
 Route::middleware(['auth'])->group(function () {
     Route::resource('books', BookController::class)->except(['index', 'show']);
 
-    // レビュー投稿用（特定の書籍に対して投稿するため URL に {book} が入ります）
     Route::post('/books/{book}/reviews', [ReviewController::class, 'store'])->name('reviews.store');
 
-    // レビュー編集・更新・削除用
     Route::get('/reviews/{review}/edit', [ReviewController::class, 'edit'])->name('reviews.edit');
 
     Route::put('/reviews/{review}', [ReviewController::class, 'update'])->name('reviews.update');
 
     Route::delete('/reviews/{review}', [ReviewController::class, 'destroy'])->name('reviews.destroy');
 
-    // お気に入り一覧画面
     Route::get('/favorites', [FavoriteController::class, 'index'])->name('favorites.index');
 
-    // お気に入りトグル処理（書籍のIDをルートパラメーターに持つ）
     Route::post('/books/{book}/favorites', [FavoriteController::class, 'store'])->name('favorites.toggle');
 
-    // レビューいいねトグル処理（レビューのIDをルートパラメーターに持つ）
     Route::post('/reviews/{review}/like', [ReviewLikeController::class, 'store'])->name('reviews.like');
 
-    // ジャンル管理・ジャンル別書籍一覧のルート定義一括登録
     Route::resource('genres', GenreController::class);
 
-    // 外部ISBN検索ルート
     Route::get('/books/isbn/{isbn}', [BookController::class, 'searchByIsbn'])
         ->name('books.isbn.search');
 
-    // マイ読書レポート (PG14) 登録ユーザー専用
     Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
 
-    // ==========================================
-    // 読書計画（Reading Plans）関連
-    // ==========================================
-    // show（詳細画面）以外のCRUDを一括で定義します（except仕様）
     Route::resource('reading-plans', ReadingPlanController::class)->except(['show']);
 
-    // 読了アクション（カスタムPOSTルート）
     Route::post('reading-plans/{reading_plan}/complete', [ReadingPlanController::class, 'complete'])
         ->name('reading-plans.complete');
 
-    // ==========================================
-    // 通知（Notifications）関連
-    // ==========================================
-    // 通知一覧の表示（GET）
     Route::get('notifications', [NotificationController::class, 'index'])
         ->name('notifications.index');
 
-    // 通知の既読化（POST）
     Route::post('notifications/{id}/read', [NotificationController::class, 'read'])
         ->name('notifications.read');
 });
 
-// トップページ（/）アクセス時は書籍一覧（/books）へリダイレクト
-Route::get('/', function () {
+/**
+ * トップページへのアクセスを書籍一覧へリダイレクトする。
+ *
+ * @return RedirectResponse 書籍一覧へのリダイレクトレスポンス
+ */
+Route::get('/', function (): RedirectResponse {
     return redirect()->route('books.index');
 });
 
-// 【ゲストでもアクセス可能】書籍一覧（index）と詳細画面（show）
 Route::resource('books', BookController::class)->only(['index', 'show']);
 
-// ランキング画面
 Route::get('/ranking', [RankingController::class, 'index'])->name('ranking.index');

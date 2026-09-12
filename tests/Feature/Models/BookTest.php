@@ -13,6 +13,11 @@ class BookTest extends TestCase
 {
     use RefreshDatabase;
 
+    /**
+     * 書籍が登録ユーザーに属するリレーションを持つことを検証する。
+     *
+     * @return void 書籍のuserリレーションが対象ユーザーを返すことを確認する
+     */
     public function test_book_belongs_to_user(): void
     {
         $user = User::factory()->create();
@@ -22,6 +27,11 @@ class BookTest extends TestCase
         $this->assertEquals($user->id, $book->user->id);
     }
 
+    /**
+     * 書籍が複数のジャンルに関連付けられることを検証する。
+     *
+     * @return void 登録した2件のジャンルが取得できることを確認する
+     */
     public function test_book_belongs_to_many_genres(): void
     {
         $book = Book::factory()->create();
@@ -33,6 +43,11 @@ class BookTest extends TestCase
         $this->assertTrue($book->genres->contains($genres->first()));
     }
 
+    /**
+     * 書籍が複数のレビューを持つリレーションを提供することを検証する。
+     *
+     * @return void 書籍に紐づく3件のレビューを取得できることを確認する
+     */
     public function test_book_has_many_reviews(): void
     {
         $book = Book::factory()->create();
@@ -41,6 +56,11 @@ class BookTest extends TestCase
         $this->assertCount(3, $book->reviews);
     }
 
+    /**
+     * 書籍に紐づくレビューの平均評価と件数を正しく集計できることを検証する。
+     *
+     * @return void 平均評価が4.0、レビュー件数が2件になることを確認する
+     */
     public function test_book_calculates_avg_rating_and_review_count(): void
     {
         $book = Book::factory()->create();

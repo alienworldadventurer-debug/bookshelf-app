@@ -8,7 +8,9 @@ use Illuminate\Validation\Rule;
 class UpdateGenreRequest extends FormRequest
 {
     /**
-     * ユーザーがこのリクエストを行う権限があるかどうかを判定します
+     * リクエストを実行する権限があるか判断する。
+     *
+     * @return bool リクエストを許可する場合はtrue
      */
     public function authorize(): bool
     {
@@ -16,7 +18,9 @@ class UpdateGenreRequest extends FormRequest
     }
 
     /**
-     * リクエストに適用するバリデーションルールを定義します
+     * ジャンル更新に使用するバリデーションルールを返す。
+     *
+     * @return array<string, array<int, mixed>> バリデーションルール
      */
     public function rules(): array
     {
@@ -31,7 +35,9 @@ class UpdateGenreRequest extends FormRequest
     }
 
     /**
-     * 定義済みバリデーションルールのエラーメッセージを取得します
+     * バリデーションエラーメッセージを返す。
+     *
+     * @return array<string, string> 入力項目ごとのエラーメッセージ
      */
     public function messages(): array
     {

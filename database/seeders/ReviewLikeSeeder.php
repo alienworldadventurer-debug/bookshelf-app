@@ -9,7 +9,10 @@ use Illuminate\Database\Seeder;
 class ReviewLikeSeeder extends Seeder
 {
     /**
-     * Run the database seeds.
+     * 各レビューに対する初期いいねデータを登録する。
+     *
+     * レビュー投稿者本人を除外し、レビューごとに最大3人のユーザーを
+     * ランダムに選択していいねを紐付ける。
      */
     public function run(): void
     {
@@ -20,27 +23,28 @@ class ReviewLikeSeeder extends Seeder
             return;
         }
 
-        foreach ($reviews as $review) {
+        $reviews->each(function (Review $review) use ($users): void {
             $likeCount = rand(0, 3);
 
             if ($likeCount === 0) {
-                continue;
+                return;
             }
 
-            // 自分の投稿したレビュー以外をいいね対象とする（投稿者本人を除外）
-            $candidateUsers = $users->filter(function ($user) use ($review) {
+            $candidateUsers = $users->filter(function (User $user) use ($review): bool {
                 return $user->id !== $review->user_id;
             });
 
             if ($candidateUsers->isEmpty()) {
-                continue;
+                return;
             }
 
-            // いいねする実人数を決定
             $actualLikeCount = min($likeCount, $candidateUsers->count());
-            $likerIds = $candidateUsers->random($actualLikeCount)->pluck('id')->toArray();
+            $likerIds = $candidateUsers
+                ->random($actualLikeCount)
+                ->pluck('id')
+                ->all();
 
             $review->likedByUsers()->syncWithoutDetaching($likerIds);
-        }
+        });
     }
 }

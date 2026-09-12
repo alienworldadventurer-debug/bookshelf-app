@@ -13,6 +13,11 @@ class UserTest extends TestCase
 {
     use RefreshDatabase;
 
+    /**
+     * ユーザーが複数の書籍を所有できることを検証する。
+     *
+     * @return void ユーザーから2件の書籍を取得できることを確認する
+     */
     public function test_user_has_many_books(): void
     {
         $user = User::factory()->create();
@@ -21,6 +26,11 @@ class UserTest extends TestCase
         $this->assertCount(2, $user->books);
     }
 
+    /**
+     * ユーザーが複数のレビューを投稿できることを検証する。
+     *
+     * @return void ユーザーから3件のレビューを取得できることを確認する
+     */
     public function test_user_has_many_reviews(): void
     {
         $user = User::factory()->create();
@@ -29,12 +39,16 @@ class UserTest extends TestCase
         $this->assertCount(3, $user->reviews);
     }
 
+    /**
+     * ユーザーがお気に入り書籍を複数登録できることを検証する。
+     *
+     * @return void 紐付けた2件の書籍を取得できることを確認する
+     */
     public function test_user_has_many_favorite_books(): void
     {
         $user = User::factory()->create();
         $books = Book::factory()->count(2)->create();
 
-        // お気に入り中間テーブル（favorites）への紐付け
         $user->favoriteBooks()->attach($books->pluck('id')->toArray());
 
         $this->assertCount(2, $user->favoriteBooks);
@@ -42,26 +56,22 @@ class UserTest extends TestCase
     }
 
     /**
-     * Userモデルから、追加された「readingPlans（読書計画）」の
-     * 関連リレーションデータが正確に取得できることを検証します。
+     * ユーザーが複数の読書計画を持てることを検証する。
+     *
+     * @return void 2件の読書計画を取得でき、要素がReadingPlanであることを確認する
      */
     public function test_user_has_many_reading_plans(): void
     {
-        // Arrange (準備)
         $user = User::factory()->create();
         $book = Book::factory()->create();
 
-        // 読書計画を2件登録
         ReadingPlan::factory()->count(2)->create([
             'user_id' => $user->id,
             'book_id' => $book->id,
         ]);
 
-        // Assert (検証)
-        // 1. readingPlansリレーションから取得したコレクション数が2であることを検証
         $this->assertCount(2, $user->readingPlans);
 
-        // 2. リレーションから返されるデータが ReadingPlan クラスのインスタンスであることを検証
         $this->assertInstanceOf(ReadingPlan::class, $user->readingPlans->first());
     }
 }

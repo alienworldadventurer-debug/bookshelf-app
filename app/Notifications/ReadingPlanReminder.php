@@ -56,34 +56,30 @@ class ReadingPlanReminder extends Notification
         $bookTitle = $this->readingPlan->book->title;
         $dueDate = $this->readingPlan->target_date->format('Y-m-d');
 
-        // タイミングごとの件名（title）と本文（body）の動的な組み立て
-        $title = '';
-        $body = '';
-
-        switch ($this->timing) {
-            case 'three_days_before':
-                $title = '【リマインダー】読書期日の3日前です';
-                $body = "計画している「{$bookTitle}」の読了期日（{$dueDate}）まであと3日です。計画的に読み進めましょう！";
-                break;
-            case 'on_due_date':
-                $title = '【リマインダー】読書期日の当日です';
-                $body = "計画している「{$bookTitle}」の読了期日は本日（{$dueDate}）です。読了しましたら読書計画画面から「読了する」ボタンを押してください。";
-                break;
-            case 'three_days_after':
-                $title = '【再挑戦】もう一度計画を立ててみませんか？';
-                $body = "期限切れとなった「{$bookTitle}」について、もう一度計画を立て直して読書を再開してみませんか？";
-                break;
-            default:
-                $title = '読書計画のお知らせ';
-                $body = "計画している「{$bookTitle}」に関するお知らせです。";
-                break;
-        }
+        [$title, $body] = match ($this->timing) {
+            'three_days_before' => [
+                '【リマインダー】読書期日の3日前です',
+                "計画している「{$bookTitle}」の読了期日（{$dueDate}）まであと3日です。計画的に読み進めましょう！",
+            ],
+            'on_due_date' => [
+                '【リマインダー】読書期日の当日です',
+                "計画している「{$bookTitle}」の読了期日は本日（{$dueDate}）です。読了しましたら読書計画画面から「読了する」ボタンを押してください。",
+            ],
+            'three_days_after' => [
+                '【再挑戦】もう一度計画を立ててみませんか？',
+                "期限切れとなった「{$bookTitle}」について、もう一度計画を立て直して読書を再開してみませんか？",
+            ],
+            default => [
+                '読書計画のお知らせ',
+                "計画している「{$bookTitle}」に関するお知らせです。",
+            ],
+        };
 
         return [
-            'reading_plan_id' => $this->readingPlan->id, // トリガーとなった計画の特定用
-            'timing' => $this->timing,                   // UIデザイン（アイコン・ボーダー色）の切り替え用
-            'title' => $title,                           // 通知の件名
-            'body' => $body,                             // 通知の本文
+            'reading_plan_id' => $this->readingPlan->id,
+            'timing' => $this->timing,
+            'title' => $title,
+            'body' => $body,
         ];
     }
 }
