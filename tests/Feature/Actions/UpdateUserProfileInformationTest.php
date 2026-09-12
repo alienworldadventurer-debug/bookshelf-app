@@ -13,9 +13,9 @@ class UpdateUserProfileInformationTest extends TestCase
     use RefreshDatabase;
 
     /**
-     * @test
-     * 正常系: 有効な名前とメールアドレスを指定して実行した際、
-     * ユーザーのプロフィール情報（名前・メール）が正常に更新されること。
+     * 有効な名前とメールアドレスを指定すると、プロフィール情報が更新されることを検証する。
+     *
+     * @return void 更新後の名前とメールアドレスがデータベースに保存されることを確認する
      */
     public function test_update_user_profile_information_action_updates_profile_successfully(): void
     {
@@ -26,21 +26,19 @@ class UpdateUserProfileInformationTest extends TestCase
 
         $action = new UpdateUserProfileInformation;
 
-        // 正常系：プロフィールの更新
         $action->update($user, [
             'name' => '新しい名前',
             'email' => 'new@example.com',
         ]);
 
-        // データベースの値が正しく書き換わっていることを検証
         $this->assertEquals('新しい名前', $user->fresh()->name);
         $this->assertEquals('new@example.com', $user->fresh()->email);
     }
 
     /**
-     * @test
-     * 異常系: 名前やメールが空、または不正なメール形式、他者と重複するメールアドレスを指定した際、
-     * バリデーションエラー（ValidationException）が発生すること。
+     * 重複・空欄・形式不正のプロフィール情報で、バリデーションエラーが発生することを検証する。
+     *
+     * @return void 各不正入力に対してValidationExceptionが送出されることを確認する
      */
     public function test_update_user_profile_information_action_fails_validation(): void
     {
@@ -49,18 +47,16 @@ class UpdateUserProfileInformationTest extends TestCase
 
         $action = new UpdateUserProfileInformation;
 
-        // 異常系1: 他のユーザーと重複するメールアドレスを指定した場合
         try {
             $action->update($user1, [
                 'name' => 'ユーザー1',
-                'email' => 'user2@example.com', // user2がすでに使用中のメールアドレス
+                'email' => 'user2@example.com',
             ]);
             $this->fail('メールアドレス重複時のバリデーションエラーが発生しませんでした。');
         } catch (ValidationException $e) {
             $this->assertArrayHasKey('email', $e->errors());
         }
 
-        // 異常系2: 必須項目（名前・メール）を空で指定した場合
         try {
             $action->update($user1, [
                 'name' => '',
@@ -72,11 +68,10 @@ class UpdateUserProfileInformationTest extends TestCase
             $this->assertArrayHasKey('email', $e->errors());
         }
 
-        // 異常系3: メールアドレスの形式が不正な場合
         try {
             $action->update($user1, [
                 'name' => 'ユーザー1',
-                'email' => 'invalid-email-format', // 不正なフォーマット
+                'email' => 'invalid-email-format',
             ]);
             $this->fail('メールアドレス形式バリデーションエラーが発生しませんでした。');
         } catch (ValidationException $e) {

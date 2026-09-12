@@ -12,27 +12,22 @@ class ReviewControllerTest extends TestCase
 {
     use RefreshDatabase;
 
-    // =========================================================================
-    // 1. レビュー投稿 (Store) のテスト (正常系・異常系・境界値)
-    // =========================================================================
-
     /**
-     * ログインユーザーが正常にレビューを投稿でき、書籍詳細へリダイレクトされること
+     * ログインユーザーがレビューを投稿でき、書籍詳細へリダイレクトされることを検証する。
+     *
+     * @return void レビューの保存内容とリダイレクト先を確認する
      */
     public function test_authenticated_user_can_post_review(): void
     {
-        // Arrange (準備)
         $user = User::factory()->create();
         $book = Book::factory()->create(['user_id' => $user->id]);
 
-        // Act (実行)
         $response = $this->actingAs($user)->post(route('reviews.store', $book), [
             'rating' => 5,
             'comment' => '素晴らしい本でした！',
         ]);
 
-        // Assert (検証)
-        $response->assertRedirect(route('books.show', $book)); // 書籍詳細へ戻る
+        $response->assertRedirect(route('books.show', $book));
         $this->assertDatabaseHas('reviews', [
             'user_id' => $user->id,
             'book_id' => $book->id,
@@ -42,29 +37,27 @@ class ReviewControllerTest extends TestCase
     }
 
     /**
-     * 評価(rating)が未入力、または範囲外の場合にバリデーションエラーが発生すること
+     * 評価が未入力または1から5の範囲外の場合にバリデーションエラーになることを検証する。
+     *
+     * @return void 必須、下限超過、上限超過の各エラーを確認する
      */
     public function test_review_store_validation_fails_with_invalid_rating(): void
     {
-        // Arrange (準備)
         $user = User::factory()->create();
         $book = Book::factory()->create(['user_id' => $user->id]);
 
-        // Act & Assert ①：必須エラー (空)
         $responseRequired = $this->actingAs($user)->post(route('reviews.store', $book), [
             'rating' => '',
             'comment' => '評価なし',
         ]);
         $responseRequired->assertSessionHasErrors(['rating']);
 
-        // Act & Assert ②：下限境界外エラー (0は範囲外：1〜5)
         $responseMin = $this->actingAs($user)->post(route('reviews.store', $book), [
             'rating' => 0,
             'comment' => '評価0',
         ]);
         $responseMin->assertSessionHasErrors(['rating']);
 
-        // Act & Assert ③：上限境界外エラー (6は範囲外：1〜5)
         $responseMax = $this->actingAs($user)->post(route('reviews.store', $book), [
             'rating' => 6,
             'comment' => '評価6',
@@ -73,22 +66,21 @@ class ReviewControllerTest extends TestCase
     }
 
     /**
-     * コメントが1000文字（境界値：上限値）であれば正常登録できること
+     * コメントが上限の1000文字であれば正常に登録できることを検証する。
+     *
+     * @return void 1000文字のコメントが保存されることを確認する
      */
     public function test_review_store_boundary_success_at_1000_characters(): void
     {
-        // Arrange (準備)
         $user = User::factory()->create();
         $book = Book::factory()->create(['user_id' => $user->id]);
         $longComment = str_repeat('あ', 1000);
 
-        // Act (実行)
         $response = $this->actingAs($user)->post(route('reviews.store', $book), [
             'rating' => 4,
             'comment' => $longComment,
         ]);
 
-        // Assert (検証)
         $response->assertRedirect(route('books.show', $book));
         $this->assertDatabaseHas('reviews', [
             'rating' => 4,
@@ -97,35 +89,31 @@ class ReviewControllerTest extends TestCase
     }
 
     /**
-     * コメントが1001文字以上の場合、バリデーションエラーが発生すること
+     * コメントが1001文字以上の場合にバリデーションエラーになることを検証する。
+     *
+     * @return void コメント長の上限超過エラーを確認する
      */
     public function test_review_store_boundary_fails_at_1001_characters(): void
     {
-        // Arrange (準備)
         $user = User::factory()->create();
         $book = Book::factory()->create(['user_id' => $user->id]);
         $longComment = str_repeat('あ', 1001);
 
-        // Act (実行)
         $response = $this->actingAs($user)->post(route('reviews.store', $book), [
             'rating' => 4,
             'comment' => $longComment,
         ]);
 
-        // Assert (検証)
         $response->assertSessionHasErrors(['comment']);
     }
 
-    // =========================================================================
-    // 2. レビュー編集・更新 (Update) のテスト (正常系・認可エラー)
-    // =========================================================================
-
     /**
-     * 投稿者本人がレビューを正常に更新できること
+     * レビュー投稿者本人がレビューを更新できることを検証する。
+     *
+     * @return void 更新内容の保存と書籍詳細へのリダイレクトを確認する
      */
     public function test_creator_can_update_review(): void
     {
-        // Arrange (準備)
         $user = User::factory()->create();
         $book = Book::factory()->create(['user_id' => $user->id]);
         $review = Review::factory()->create([
@@ -135,13 +123,11 @@ class ReviewControllerTest extends TestCase
             'comment' => '普通でした',
         ]);
 
-        // Act (実行)
         $response = $this->actingAs($user)->put(route('reviews.update', $review), [
             'rating' => 4,
             'comment' => '読み返すと良かったです！',
         ]);
 
-        // Assert (検証)
         $response->assertRedirect(route('books.show', $book));
         $this->assertDatabaseHas('reviews', [
             'id' => $review->id,
@@ -151,11 +137,12 @@ class ReviewControllerTest extends TestCase
     }
 
     /**
-     * 投稿者以外の他ユーザーが編集・更新を試みた場合、403 Forbidden になること
+     * 投稿者以外のユーザーによるレビュー更新が403 Forbiddenになることを検証する。
+     *
+     * @return void レビュー更新の認可制限を確認する
      */
     public function test_non_creator_cannot_update_review(): void
     {
-        // Arrange (準備)
         $creator = User::factory()->create();
         $otherUser = User::factory()->create();
         $book = Book::factory()->create(['user_id' => $creator->id]);
@@ -164,26 +151,21 @@ class ReviewControllerTest extends TestCase
             'book_id' => $book->id,
         ]);
 
-        // Act (実行)
         $response = $this->actingAs($otherUser)->put(route('reviews.update', $review), [
             'rating' => 5,
             'comment' => '勝手に更新',
         ]);
 
-        // Assert (検証)
-        $response->assertStatus(403); // 認可ポリシー（Policy）による制限
+        $response->assertStatus(403);
     }
 
-    // =========================================================================
-    // 3. レビュー削除 (Destroy) のテスト (正常系・認可エラー)
-    // =========================================================================
-
     /**
-     * 投稿者本人がレビューを削除できること
+     * レビュー投稿者本人がレビューを削除できることを検証する。
+     *
+     * @return void 削除処理とデータベースからの消去を確認する
      */
     public function test_creator_can_destroy_review(): void
     {
-        // Arrange (準備)
         $user = User::factory()->create();
         $book = Book::factory()->create(['user_id' => $user->id]);
         $review = Review::factory()->create([
@@ -191,20 +173,19 @@ class ReviewControllerTest extends TestCase
             'book_id' => $book->id,
         ]);
 
-        // Act (実行)
         $response = $this->actingAs($user)->delete(route('reviews.destroy', $review));
 
-        // Assert (検証)
         $response->assertRedirect(route('books.show', $book));
         $this->assertDatabaseMissing('reviews', ['id' => $review->id]);
     }
 
     /**
-     * 投稿者以外の他ユーザーがレビューの削除を試みた場合、403 Forbidden になること
+     * 投稿者以外のユーザーによるレビュー削除が403 Forbiddenになることを検証する。
+     *
+     * @return void レビュー削除の認可制限とデータ保持を確認する
      */
     public function test_non_creator_cannot_destroy_review(): void
     {
-        // Arrange (準備)
         $creator = User::factory()->create();
         $otherUser = User::factory()->create();
         $book = Book::factory()->create(['user_id' => $creator->id]);
@@ -213,10 +194,8 @@ class ReviewControllerTest extends TestCase
             'book_id' => $book->id,
         ]);
 
-        // Act (実行)
         $response = $this->actingAs($otherUser)->delete(route('reviews.destroy', $review));
 
-        // Assert (検証)
         $response->assertStatus(403);
         $this->assertDatabaseHas('reviews', ['id' => $review->id]);
     }

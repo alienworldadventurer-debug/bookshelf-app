@@ -14,9 +14,9 @@ class ResetUserPasswordTest extends TestCase
     use RefreshDatabase;
 
     /**
-     * @test
-     * 正常系: 有効な新しいパスワード（8文字以上かつ確認用と一致）を指定して実行した際、
-     * ユーザーのパスワードが安全にハッシュ化されて更新されること。
+     * 有効なパスワードを指定すると、ユーザーのパスワードが更新されることを検証する。
+     *
+     * @return void 新しいパスワードがハッシュ化され、認証に利用できることを確認する
      */
     public function test_reset_user_password_action_resets_password_successfully(): void
     {
@@ -26,27 +26,24 @@ class ResetUserPasswordTest extends TestCase
 
         $action = new ResetUserPassword;
 
-        // 正常系：パスワードリセットの実行 (8文字以上の同一パスワード)
         $action->reset($user, [
             'password' => 'new-password',
             'password_confirmation' => 'new-password',
         ]);
 
-        // パスワードが更新され、新パスワードでハッシュが一致することを検証
         $this->assertTrue(Hash::check('new-password', $user->fresh()->password));
     }
 
     /**
-     * @test
-     * 異常系: 不一致なパスワードや8文字未満などの不正な入力値を指定した際、
-     * バリデーションエラー（ValidationException）が発生すること。
+     * パスワード確認不一致や最小文字数未満の入力で、バリデーションエラーが発生することを検証する。
+     *
+     * @return void 不正な各入力に対してValidationExceptionが送出されることを確認する
      */
     public function test_reset_user_password_action_fails_validation_with_invalid_data(): void
     {
         $user = User::factory()->create();
         $action = new ResetUserPassword;
 
-        // 異常系1: パスワード確認用不一致
         try {
             $action->reset($user, [
                 'password' => 'new-password',
@@ -57,7 +54,6 @@ class ResetUserPasswordTest extends TestCase
             $this->assertArrayHasKey('password', $e->errors());
         }
 
-        // 異常系2: パスワードが8文字未満
         try {
             $action->reset($user, [
                 'password' => 'short',
