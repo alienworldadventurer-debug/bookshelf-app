@@ -1,76 +1,54 @@
 # BookShelf 書籍レビューアプリ
 
-書籍レビューアプリケーション「BookShelf」のバックエンド開発プロジェクトです。
-ユーザーは書籍の登録、閲覧、レビューの投稿、お気に入り登録、レビューへのいいね、ジャンル管理、ランキング閲覧を行うことができます。
-外部アプリケーション向けに、書籍情報を管理するための公開API（JSON）も提供しています。
+## 1. 作成者
 
-本書は基本機能の実装完了に伴い、環境構築、各種仕様、およびAPIエンドポイントの一覧を記述したものです。
+- **氏名**: 谷口 俊明
 
-## 作成者
+## 2. 概要
 
-谷口 俊明
+ユーザーが書籍の登録・検索・閲覧、レビュー投稿、お気に入り登録や読書計画の管理を行える書籍レビューアプリケーションです。
+一般ユーザー向けのWebアプリケーション機能に加え、外部連携用の公開REST APIを搭載しています。
 
-## 使用技術
+### 主な機能
 
-- **PHP**: 8.2
-- **Laravel**: 10.x
-- **MySQL**: 8.4
-- **Docker / Docker Compose / Laravel Sail**
-- **Vite / Tailwind CSS** ^3.4.0
-- **Laravel Fortify**（ユーザー認証）
-- **phpMyAdmin**（DB管理ツール：ポート `8080`）
+- **ユーザー認証機能**: 新規会員登録、ログイン、ログアウト（Laravel Fortify）
+- **書籍管理機能**: 書籍の登録・詳細表示・編集・削除、所有者認可制御
+- **高度な検索・フィルタ機能**: キーワード検索、ジャンル絞り込み、並び順変更
+- **ISBN自動入力機能**: 13桁のISBNコードによるGoogle Books API連携とフォーム自動補完
+- **ジャンル管理機能**: ジャンル一覧・詳細表示、登録・編集・削除
+- **レビュー・評価機能**: 5段階評価およびコメント投稿・編集・削除
+- **お気に入り・いいね機能**: 書籍のお気に入り登録・解除、レビューに対するいいねトグル動作
+- **ランキング機能**: レビュー平均評価順に基づくTOP10表示
+- **マイ読書レポート機能**: 読書統計、評価分布、高評価書籍TOP5等のダッシュボード表示
+- **読書計画・通知機能**: 読書目標期日の管理、日次バッチによる自動失効処理およびリマインダー通知
+- **公開API**: 書籍情報のCRUD操作およびSanctumによるトークン認証
 
----
+## 3. 使用技術
 
-## 開発環境URL
+- **バックエンド**: PHP 8.5, Laravel 10.x
+- **データベース**: MySQL 8.4
+- **フロントエンド**: Vite, Tailwind CSS 3.4, Alpine.js
+- **開発・実行環境**: Docker, Docker Compose, Laravel Sail, phpMyAdmin
+- **認証パッケージ**: Laravel Fortify（Webセッション認証）, Laravel Sanctum（APIトークン認証）
+- **コード品質・テスト**: Laravel Pint (PSR-12フォーマット), PHPUnit / Laravel Testing framework
 
-- **アプリケーション（Web）**: http://localhost
-- **phpMyAdmin**: http://localhost:8080
-    - ユーザー名: `sail`
-    - パスワード: `password`
-
----
-
-## 機能一覧（基本機能）
-
-- **ユーザー認証機能** (Laravel Fortify)
-    - ユーザー会員登録、ログイン、ログアウト
-- **書籍管理機能 (CRUD)**
-    - 書籍登録、詳細表示、編集、削除（Policyによる所有者認可制約あり）
-- **ジャンル管理機能**
-    - ジャンル一覧、書籍が紐づくジャンルの削除制限（ビジネスルール）
-- **レビュー機能**
-    - 書籍へのレビュー投稿（5段階評価・コメント）、投稿者自身による編集・削除
-- **お気に入り機能**
-    - 書籍へのお気に入り登録・解除（トグル動作）
-- **いいね機能**
-    - 他者のレビューに対するいいね登録・解除（トグル動作）
-- **ランキング機能**
-    - レビュー平均評価順による上位10件の書籍ランキング表示
-- **公開API**
-    - 外部連携用の書籍CRUD（JSONレスポンス）
-
----
-
-## ER図
-
-本アプリケーションの基本機能で設計したデータベースのリレーションです。
+## 4. ER図
 
 ```mermaid
 erDiagram
     %% ==========================================
-    %% 1. テーブル定義
+    %% 1. 全カラム・全テーブル定義（省略なし）
     %% ==========================================
 
     users {
         bigint_unsigned id PK
         varchar_255 name
         varchar_255 email UK
-        timestamp email_verified_at "NULL可"
+        timestamp email_verified_at
         varchar_255 password
-        varchar_100 remember_token "NULL可"
-        timestamp created_at "NULL可"
-        timestamp updated_at "NULL可"
+        varchar_100 remember_token
+        timestamp created_at
+        timestamp updated_at
     }
 
     books {
@@ -80,31 +58,31 @@ erDiagram
         varchar_255 author
         varchar_255 isbn UK
         date published_date
-        text description "NULL可"
-        varchar_255 image_url "NULL可"
-        timestamp created_at "NULL可"
-        timestamp updated_at "NULL可"
+        text description
+        varchar_255 image_url
+        timestamp created_at
+        timestamp updated_at
     }
 
     genres {
         bigint_unsigned id PK
         varchar_255 name UK
-        timestamp created_at "NULL可"
-        timestamp updated_at "NULL可"
+        timestamp created_at
+        timestamp updated_at
     }
 
     book_genre {
         bigint_unsigned book_id PK, FK
         bigint_unsigned genre_id PK, FK
-        timestamp created_at "NULL可"
-        timestamp updated_at "NULL可"
+        timestamp created_at
+        timestamp updated_at
     }
 
     favorites {
         bigint_unsigned user_id PK, FK
         bigint_unsigned book_id PK, FK
-        timestamp created_at "NULL可"
-        timestamp updated_at "NULL可"
+        timestamp created_at
+        timestamp updated_at
     }
 
     reviews {
@@ -112,180 +90,151 @@ erDiagram
         bigint_unsigned user_id FK
         bigint_unsigned book_id FK
         tinyint_unsigned rating
-        text comment "NULL可"
-        timestamp created_at "NULL可"
-        timestamp updated_at "NULL可"
+        text comment
+        timestamp created_at
+        timestamp updated_at
     }
 
     review_likes {
         bigint_unsigned user_id PK, FK
         bigint_unsigned review_id PK, FK
-        timestamp created_at "NULL可"
-        timestamp updated_at "NULL可"
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    reading_plans {
+        bigint_unsigned id PK
+        bigint_unsigned user_id FK
+        bigint_unsigned book_id FK
+        date target_date
+        varchar_255 status
+        timestamp completed_at
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    notifications {
+        char_36 id PK
+        varchar_255 type
+        varchar_255 notifiable_type
+        bigint_unsigned notifiable_id
+        text data
+        timestamp read_at
+        timestamp created_at
+        timestamp updated_at
     }
 
     %% ==========================================
-    %% 2. リレーション定義
+    %% 2. 交差を最小限に抑えるリレーション配置定義
     %% ==========================================
 
-    %% 💡 1. 中央コア軸（users ➔ books）
+    %% 💡 1. 中央コア軸（users ➔ books ➔ reading_plans）
     users ||--o{ books : "register_book"
+    users ||--o{ reading_plans : "create_plan"
+    books ||--o{ reading_plans : "plan_target"
 
-    %% 💡 2. 左側：レビュー・いいねドメイン（中央から左下に流す）
+    %% 💡 2. 左側：レビュー・いいねドメイン（左側に綺麗に流れます）
     users ||--o{ reviews : "post_review"
     books ||--o{ reviews : "review_target"
-    users ||--o{ review_likes : "like_review"
     reviews ||--o{ review_likes : "like_target"
+    users ||--o{ review_likes : "like_review"
 
-    %% 💡 3. 右側：お気に入りドメイン（中央から右下に流して、左側と完全分離）
+    %% 💡 3. 右側：お気に入り・ジャンルドメイン（右側に綺麗に流れます）
     books ||--o{ favorites : "fav_target"
     users ||--o{ favorites : "add_fav"
-
-    %% 💡 4. 極右側：ジャンルドメイン（右端に逃がして配置）
     books ||--o{ book_genre : "book_link"
     genres ||--o{ book_genre : "genre_link"
+
+    %% 💡 4. 下部：通知ドメイン（中央の一番下に逃がして配置）
+    users ||..o{ notifications : "receive_notification"
+    reading_plans ||..o{ notifications : "log_data"
 ```
 
----
+## 5. 環境構築手順
 
-## 環境構築手順
+第三者がゼロからローカル開発環境を立ち上げるための手順です。
 
-DockerとLaravel Sailを使用してローカル環境を立ち上げます。事前にDocker Desktopがインストールされ、起動していることを確認してください。
-
-### 1. リポジトリをクローン
+### 1. リポジトリのクローンと移動
 
 ```bash
-git clone https://github.com/alienworldadventurer-debug/bookshelf-app
+git clone <repository-url>
 cd bookshelf-app
 ```
 
-### 2. .env ファイルの作成と設定
-
-`.env.example` をコピーして `.env` を作成します。
+### 2. 環境変数ファイルの準備
 
 ```bash
 cp .env.example .env
 ```
 
-`.env` のDB接続設定が以下になっていることを確認してください（Sailコンテナ内の MySQL を指定）。
-
-```env
-DB_CONNECTION=mysql
-DB_HOST=mysql
-DB_PORT=3306
-DB_DATABASE=laravel
-DB_USERNAME=sail
-DB_PASSWORD=password
-```
-
-### 3. Composerのインストール（初回起動用コンテナ経由）
-
-プロジェクトの初回セットアップ時は `vendor` ディレクトリがないため、Sailコンテナ経由で Composer の依存関係を解決します。
-
-```bash
-docker run --rm \
-  -u "$(id -u):$(id -g)" \
-  -v "$(pwd):/var/www/html" \
-  -w /var/www/html \
-  -e COMPOSER_CACHE_DIR=/tmp/composer_cache \
-  laravelsail/php82-composer:latest \
-  composer install
-```
-
-### 4. Laravel Sailの起動
-
-Dockerコンテナをバックグラウンドで起動します。
+### 3. Docker (Laravel Sail) コンテナの起動
 
 ```bash
 ./vendor/bin/sail up -d
 ```
 
-_(※ M1/M2/M3 MacでMySQLコンテナが正常起動しない場合は、`docker-compose.yml` または `compose.yaml` の `mysql` サービスに `platform: 'linux/amd64'` を追記してください)_
+### 4. Composerパッケージのインストール
+
+```bash
+sail composer install
+```
 
 ### 5. アプリケーションキーの生成
 
 ```bash
-./vendor/bin/sail artisan key:generate
+sail artisan key:generate
 ```
 
-### 6. データベースのマイグレーションとダミーデータの投入
+### 6. データベースマイグレーションおよび初期データの投入（シーディング）
 
 ```bash
-./vendor/bin/sail artisan migrate:fresh --seed
+sail artisan migrate:fresh --seed
 ```
 
-`UserSeeder` により、以下の5名のログイン可能なテストアカウントが作成されます。
-
-- パスワードはすべて `password` です。
-    - 山田太郎 (`yamada@example.com`)
-    - 鈴木花子 (`suzuki@example.com`)
-    - 田中一郎 (`tanaka@example.com`)
-    - 佐藤美咲 (`sato@example.com`)
-    - 高橋健太 (`takahashi@example.com`)
-
-### 7. フロントエンドのセットアップとビルド
-
-ViteとTailwind CSSのパッケージを導入してビルドを実行します。
+### 7. NPMパッケージのインストールとフロントエンドアセットのビルド
 
 ```bash
-./vendor/bin/sail npm install
-./vendor/bin/sail npm run dev
+sail npm install
+sail npm run build
 ```
 
----
+## 6. 開発環境URL
 
-## テストの実行とカバレッジ測定
+- **Webアプリケーション**: http://localhost
+- **phpMyAdmin**: http://localhost:8080
+    - ユーザー名: `sail`
+    - パスワード: `password`
 
-開発した機能（画面アクセス、書籍CRUD、レビュー、お気に入り、いいね、ランキング、Fortify認証、公開APIなど）の自動テストが完備されています。
+## 7. APIエンドポイント一覧
 
-### テスト実行コマンド
+公開APIは `/api/v1` プレフィックス配下に定義されています。書き込み系エンドポイント（POST / PUT / DELETE）には Sanctum によるトークン認証（`Authorization: Bearer {token}`）が必要です。
+
+| HTTPメソッド | URI                    | 認証               | 概要                                                                   |
+| :----------- | :--------------------- | :----------------- | :--------------------------------------------------------------------- |
+| **GET**      | `/api/v1/books`        | 不要               | 書籍一覧取得（キーワード検索・ジャンル絞り込み・ページネーション対応） |
+| **GET**      | `/api/v1/books/{book}` | 不要               | 指定IDの書籍詳細取得（ジャンル情報・レビュー一覧含む）                 |
+| **POST**     | `/api/v1/books`        | **必要 (Sanctum)** | 書籍新規登録                                                           |
+| **PUT**      | `/api/v1/books/{book}` | **必要 (Sanctum)** | 指定IDの書籍更新（所有者認可チェックあり）                             |
+| **DELETE**   | `/api/v1/books/{book}` | **必要 (Sanctum)** | 指定IDの書籍削除（カスケード削除・所有者認可チェックあり）             |
+
+## 8. コード品質・テスト実行
+
+### コードフォーマット確認 (Laravel Pint)
 
 ```bash
-# 全ての機能テスト・単体テストを実行
-./vendor/bin/sail artisan test
+# 自動修正の実行
+sail bin pint
+
+# コード規約テストの実行
+sail bin pint --test
 ```
 
-### テストカバレッジ（カバー率）の測定
-
-カバレッジを測定するには `.env` に `XDEBUG_MODE=coverage` が定義され、コンテナが再起動されている必要があります。
+### テスト実行手順 (PHPUnit)
 
 ```bash
-# ターミナルでカバー率を確認
-./vendor/bin/sail artisan test --coverage
+# 全テストの実行
+sail artisan test
 
-# ブラウザ表示用の HTML カバレッジレポートを出力
-./vendor/bin/sail artisan test --coverage-html=coverage
+# コードカバレッジ率の計測
+sail artisan test --coverage
 ```
-
-- **カバー率実績**: **`89.4%`**（基本機能目標 `60%超` に対して、大幅な合格ラインクリアを達成済み）
-
----
-
-## コード品質とフォーマット（Laravel Pint）
-
-プロジェクト全体のコードスタイルを美しく保つため、PSR-12に準拠した自動整形ツール「Laravel Pint」を導入しています。
-
-```bash
-# コード自動整形を実行
-./vendor/bin/sail bin pint
-
-# コード規約エラーがないか検証
-./vendor/bin/sail bin pint --test
-```
-
-検証を実行した際、`No fixable issues were found` と緑色で表示される状態を維持しています。
-
----
-
-## 公開APIエンドポイント一覧
-
-認証不要の公開APIです。全エンドポイントは `/api/v1` プレフィックス配下に定義されています。
-APIのレスポンスは一貫して `{"data": ...}` 構造にラップして返却され、エラー時は適切な HTTP ステータスコード（404, 422など）と日本語エラーメッセージを含む JSON を返します。
-
-| HTTPメソッド | URI                    | 概要                                                                       | 認証 |
-| :----------- | :--------------------- | :------------------------------------------------------------------------- | :--- |
-| **GET**      | `/api/v1/books`        | 書籍一覧（キーワード・ジャンルIDでの絞り込み、ページネーション対応）       | 不要 |
-| **GET**      | `/api/v1/books/{book}` | 指定書籍の個別詳細表示（紐づくジャンル情報・全レビュー詳細をネストで返却） | 不要 |
-| **POST**     | `/api/v1/books`        | 新しい書籍の新規登録（バリデーション＋複数ジャンル紐付け）                 | 不要 |
-| **PUT**      | `/api/v1/books/{book}` | 指定書籍の情報の更新                                                       | 不要 |
-| **DELETE**   | `/api/v1/books/{book}` | 指定書籍の削除（お気に入り・レビューなど関連データも物理削除）             | 不要 |
