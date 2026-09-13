@@ -149,7 +149,7 @@ erDiagram
 1. **リポジトリをクローン**
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/alienworldadventurer-debug/bookshelf-app
 cd bookshelf-app
 ```
 
