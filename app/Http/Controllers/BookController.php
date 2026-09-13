@@ -6,14 +6,15 @@ use App\Http\Requests\StoreBookRequest;
 use App\Http\Requests\UpdateBookRequest;
 use App\Models\Book;
 use App\Models\Genre;
-use Exception;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\View\View;
+use Throwable;
 
 class BookController extends Controller
 {
@@ -161,10 +162,11 @@ class BookController extends Controller
     }
 
     /**
-     * ISBNコードからGoogle Books APIを利用して書籍情報を検索・返却する
+     * ISBNコードからGoogle Books APIを利用して書籍情報を検索・返却する。
      *
      * @param  Request  $request  ISBNコードを含むリクエスト
      * @param  string  $isbn  ルートパラメータのISBNコード
+     * @return JsonResponse 書籍情報またはエラーメッセージ
      */
     public function searchByIsbn(Request $request, string $isbn): JsonResponse
     {
@@ -197,9 +199,11 @@ class BookController extends Controller
                 $queryParams['key'] = $apiKey;
             }
 
-            $response = Http::get($apiUrl, $queryParams);
+            $response = Http::withoutVerifying()->get($apiUrl, $queryParams);
 
             if (! $response->successful()) {
+                Log::error('Google API HTTP Error: '.$response->status().' - '.$response->body());
+
                 return response()->json([
                     'error' => '書籍情報の取得に失敗しました。時間をおいて再度お試しいただくか、手動で入力してください。',
                 ], 500);
@@ -235,7 +239,9 @@ class BookController extends Controller
                 'image_url' => $imageUrl,
                 'published_date' => $publishedDate,
             ]);
-        } catch (Exception $e) {
+        } catch (Throwable $e) {
+            Log::error('ISBN Search Exception: '.$e->getMessage());
+
             return response()->json([
                 'error' => '書籍情報の取得に失敗しました。時間をおいて再度お試しいただくか、手動で入力してください。',
             ], 500);

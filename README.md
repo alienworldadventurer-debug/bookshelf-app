@@ -149,7 +149,7 @@ erDiagram
 1. **リポジトリをクローン**
 
 ```bash
-git clone https://github.com/alienworldadventurer-debug/bookshelf-app
+git clone https://github.com/alienworldadventurer-debug/bookshelf-app.git
 cd bookshelf-app
 ```
 
@@ -171,32 +171,39 @@ DB_USERNAME=sail
 DB_PASSWORD=password
 ```
 
-3. **Sailコンテナの起動・Composer依存パッケージのインストール**
-   プロジェクトの初回セットアップ時など、必要に応じて以下のDockerコマンドまたはSailコマンドで環境を立ち上げ、Composerパッケージをインストールします。
+3. **Composer依存パッケージのインストールとSailコンテナの起動**
+   初回クローン時は `vendor` ディレクトリが存在せず `./vendor/bin/sail` コマンドが使えないため、まず以下のDockerコマンドで `composer install` を実行し、その後にSailコンテナを起動します。
 
 ```bash
+# 初回のみ：Dockerコンテナで composer install を実行（vendorディレクトリの作成）
+docker run --rm \
+    -u "$(id -u):$(id -g)" \
+    -v "$(pwd):/var/www/html" \
+    -w /var/www/html \
+    laravelsail/php82-composer:latest \
+    composer install --ignore-platform-reqs
+
+# Sailコンテナの起動
 ./vendor/bin/sail up -d
-sail composer install
 ```
 
 4. **アプリケーションキーの生成**
 
 ```bash
-sail artisan key:generate
+./vendor/bin/sail artisan key:generate
 ```
 
 5. **データベースマイグレーションおよび初期データの投入（シーディング）**
 
 ```bash
-sail artisan migrate:fresh --seed
+./vendor/bin/sail artisan migrate:fresh --seed
 ```
 
 6. **フロントエンドのセットアップとビルド**
 
 ```bash
-sail npm install
-sail npm install alpinejs
-sail npm run build
+./vendor/bin/sail npm install
+./vendor/bin/sail npm run build
 ```
 
 7. **アプリケーションへのアクセス**
@@ -205,19 +212,19 @@ sail npm run build
 #### テスト実行
 
 ```bash
-sail artisan test
+./vendor/bin/sail artisan test
 ```
 
 カバレッジ付きで実行する場合:
 
 ```bash
-sail artisan test --coverage
+./vendor/bin/sail artisan test --coverage
 ```
 
 コード規約テスト（Laravel Pint）を実行する場合:
 
 ```bash
-sail bin pint --test
+./vendor/bin/sail bin pint --test
 ```
 
 #### 機能一覧
