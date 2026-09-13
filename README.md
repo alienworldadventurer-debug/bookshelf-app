@@ -1,76 +1,35 @@
 # BookShelf 書籍レビューアプリ
 
-書籍レビューアプリケーション「BookShelf」のバックエンド開発プロジェクトです。
-ユーザーは書籍の登録、閲覧、レビューの投稿、お気に入り登録、レビューへのいいね、ジャンル管理、ランキング閲覧を行うことができます。
-外部アプリケーション向けに、書籍情報を管理するための公開API（JSON）も提供しています。
+書籍レビューの機能を実装したLaravelプロジェクトです。一般ユーザーが書籍の登録・閲覧、レビュー投稿、お気に入り登録や読書計画の管理を行え、外部連携用の公開REST APIを搭載しています。
 
-本書は基本機能の実装完了に伴い、環境構築、各種仕様、およびAPIエンドポイントの一覧を記述したものです。
+#### 作成者
 
-## 作成者
+氏名 谷口俊明
 
-谷口 俊明
+#### 使用技術
 
-## 使用技術
+- PHP 8.5
+- Laravel 10.x
+- MySQL 8.4
+- Docker / Docker Compose / Laravel Sail
+- Vite / Tailwind CSS 3.4 / @tailwindcss/forms / Alpine.js
+- Laravel Fortify（認証）
+- Laravel Sanctum（API認証）
+- phpMyAdmin
 
-- **PHP**: 8.2
-- **Laravel**: 10.x
-- **MySQL**: 8.4
-- **Docker / Docker Compose / Laravel Sail**
-- **Vite / Tailwind CSS** ^3.4.0
-- **Laravel Fortify**（ユーザー認証）
-- **phpMyAdmin**（DB管理ツール：ポート `8080`）
-
----
-
-## 開発環境URL
-
-- **アプリケーション（Web）**: http://localhost
-- **phpMyAdmin**: http://localhost:8080
-    - ユーザー名: `sail`
-    - パスワード: `password`
-
----
-
-## 機能一覧（基本機能）
-
-- **ユーザー認証機能** (Laravel Fortify)
-    - ユーザー会員登録、ログイン、ログアウト
-- **書籍管理機能 (CRUD)**
-    - 書籍登録、詳細表示、編集、削除（Policyによる所有者認可制約あり）
-- **ジャンル管理機能**
-    - ジャンル一覧、書籍が紐づくジャンルの削除制限（ビジネスルール）
-- **レビュー機能**
-    - 書籍へのレビュー投稿（5段階評価・コメント）、投稿者自身による編集・削除
-- **お気に入り機能**
-    - 書籍へのお気に入り登録・解除（トグル動作）
-- **いいね機能**
-    - 他者のレビューに対するいいね登録・解除（トグル動作）
-- **ランキング機能**
-    - レビュー平均評価順による上位10件の書籍ランキング表示
-- **公開API**
-    - 外部連携用の書籍CRUD（JSONレスポンス）
-
----
-
-## ER図
-
-本アプリケーションの基本機能で設計したデータベースのリレーションです。
+#### ER図
 
 ```mermaid
 erDiagram
-    %% ==========================================
-    %% 1. テーブル定義
-    %% ==========================================
-
     users {
         bigint_unsigned id PK
         varchar_255 name
         varchar_255 email UK
-        timestamp email_verified_at "NULL可"
+        timestamp email_verified_at
         varchar_255 password
-        varchar_100 remember_token "NULL可"
-        timestamp created_at "NULL可"
-        timestamp updated_at "NULL可"
+        varchar_100 remember_token
+        timestamp created_at
+        timestamp updated_at
     }
 
     books {
@@ -80,31 +39,31 @@ erDiagram
         varchar_255 author
         varchar_255 isbn UK
         date published_date
-        text description "NULL可"
-        varchar_255 image_url "NULL可"
-        timestamp created_at "NULL可"
-        timestamp updated_at "NULL可"
+        text description
+        varchar_255 image_url
+        timestamp created_at
+        timestamp updated_at
     }
 
     genres {
         bigint_unsigned id PK
         varchar_255 name UK
-        timestamp created_at "NULL可"
-        timestamp updated_at "NULL可"
+        timestamp created_at
+        timestamp updated_at
     }
 
     book_genre {
         bigint_unsigned book_id PK, FK
         bigint_unsigned genre_id PK, FK
-        timestamp created_at "NULL可"
-        timestamp updated_at "NULL可"
+        timestamp created_at
+        timestamp updated_at
     }
 
     favorites {
         bigint_unsigned user_id PK, FK
         bigint_unsigned book_id PK, FK
-        timestamp created_at "NULL可"
-        timestamp updated_at "NULL可"
+        timestamp created_at
+        timestamp updated_at
     }
 
     reviews {
@@ -112,64 +71,98 @@ erDiagram
         bigint_unsigned user_id FK
         bigint_unsigned book_id FK
         tinyint_unsigned rating
-        text comment "NULL可"
-        timestamp created_at "NULL可"
-        timestamp updated_at "NULL可"
+        text comment
+        timestamp created_at
+        timestamp updated_at
     }
 
     review_likes {
         bigint_unsigned user_id PK, FK
         bigint_unsigned review_id PK, FK
-        timestamp created_at "NULL可"
-        timestamp updated_at "NULL可"
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    reading_plans {
+        bigint_unsigned id PK
+        bigint_unsigned user_id FK
+        bigint_unsigned book_id FK
+        date target_date
+        varchar_255 status
+        timestamp completed_at
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    notifications {
+        char_36 id PK
+        varchar_255 type
+        varchar_255 notifiable_type
+        bigint_unsigned notifiable_id
+        text data
+        timestamp read_at
+        timestamp created_at
+        timestamp updated_at
     }
 
     %% ==========================================
-    %% 2. リレーション定義
+    %% 2. 交差を最小限に抑えるリレーション配置定義
     %% ==========================================
 
-    %% 💡 1. 中央コア軸（users ➔ books）
+    %% 💡 1. 中央コア軸（users ➔ books ➔ reading_plans）
     users ||--o{ books : "register_book"
+    users ||--o{ reading_plans : "create_plan"
+    books ||--o{ reading_plans : "plan_target"
 
-    %% 💡 2. 左側：レビュー・いいねドメイン（中央から左下に流す）
+    %% 💡 2. 左側：レビュー・いいねドメイン（左側に綺麗に流れます）
     users ||--o{ reviews : "post_review"
     books ||--o{ reviews : "review_target"
-    users ||--o{ review_likes : "like_review"
     reviews ||--o{ review_likes : "like_target"
+    users ||--o{ review_likes : "like_review"
 
-    %% 💡 3. 右側：お気に入りドメイン（中央から右下に流して、左側と完全分離）
+    %% 💡 3. 右側：お気に入り・ジャンルドメイン（右側に綺麗に流れます）
     books ||--o{ favorites : "fav_target"
     users ||--o{ favorites : "add_fav"
-
-    %% 💡 4. 極右側：ジャンルドメイン（右端に逃がして配置）
     books ||--o{ book_genre : "book_link"
     genres ||--o{ book_genre : "genre_link"
+
+    %% 💡 4. 下部：通知ドメイン（中央の一番下に逃がして配置）
+    users ||..o{ notifications : "receive_notification"
+    reading_plans ||..o{ notifications : "log_data"
 ```
 
----
+#### 開発環境URL
 
-## 環境構築手順
+- Webアプリケーション: http://localhost
+- phpMyAdmin: http://localhost:8080
+    - ユーザー名: `sail`
+    - パスワード: `password`
 
-DockerとLaravel Sailを使用してローカル環境を立ち上げます。事前にDocker Desktopがインストールされ、起動していることを確認してください。
+#### 動作環境
 
-### 1. リポジトリをクローン
+- Docker
+- Docker Compose
+  ※ Windowsの場合はWSL2の利用を推奨します。
+
+#### 環境構築手順
+
+1. **リポジトリをクローン**
 
 ```bash
-git clone https://github.com/alienworldadventurer-debug/bookshelf-app
+git clone <repository-url>
 cd bookshelf-app
 ```
 
-### 2. .env ファイルの作成と設定
-
-`.env.example` をコピーして `.env` を作成します。
+2. **.envファイルの準備**
+   .env.example をコピーして .env を作成します。
 
 ```bash
 cp .env.example .env
 ```
 
-`.env` のDB接続設定が以下になっていることを確認してください（Sailコンテナ内の MySQL を指定）。
+.env ファイルを開き、以下のDB接続情報（Sailコンテナ内のMySQL指定）になっているか確認・設定します。
 
-```env
+```ini
 DB_CONNECTION=mysql
 DB_HOST=mysql
 DB_PORT=3306
@@ -178,114 +171,77 @@ DB_USERNAME=sail
 DB_PASSWORD=password
 ```
 
-### 3. Composerのインストール（初回起動用コンテナ経由）
-
-プロジェクトの初回セットアップ時は `vendor` ディレクトリがないため、Sailコンテナ経由で Composer の依存関係を解決します。
-
-```bash
-docker run --rm \
-  -u "$(id -u):$(id -g)" \
-  -v "$(pwd):/var/www/html" \
-  -w /var/www/html \
-  -e COMPOSER_CACHE_DIR=/tmp/composer_cache \
-  laravelsail/php82-composer:latest \
-  composer install
-```
-
-### 4. Laravel Sailの起動
-
-Dockerコンテナをバックグラウンドで起動します。
+3. **Sailコンテナの起動・Composer依存パッケージのインストール**
+   プロジェクトの初回セットアップ時など、必要に応じて以下のDockerコマンドまたはSailコマンドで環境を立ち上げ、Composerパッケージをインストールします。
 
 ```bash
 ./vendor/bin/sail up -d
+sail composer install
 ```
 
-_(※ M1/M2/M3 MacでMySQLコンテナが正常起動しない場合は、`docker-compose.yml` または `compose.yaml` の `mysql` サービスに `platform: 'linux/amd64'` を追記してください)_
-
-### 5. アプリケーションキーの生成
+4. **アプリケーションキーの生成**
 
 ```bash
-./vendor/bin/sail artisan key:generate
+sail artisan key:generate
 ```
 
-### 6. データベースのマイグレーションとダミーデータの投入
+5. **データベースマイグレーションおよび初期データの投入（シーディング）**
 
 ```bash
-./vendor/bin/sail artisan migrate:fresh --seed
+sail artisan migrate:fresh --seed
 ```
 
-`UserSeeder` により、以下の5名のログイン可能なテストアカウントが作成されます。
-
-- パスワードはすべて `password` です。
-    - 山田太郎 (`yamada@example.com`)
-    - 鈴木花子 (`suzuki@example.com`)
-    - 田中一郎 (`tanaka@example.com`)
-    - 佐藤美咲 (`sato@example.com`)
-    - 高橋健太 (`takahashi@example.com`)
-
-### 7. フロントエンドのセットアップとビルド
-
-ViteとTailwind CSSのパッケージを導入してビルドを実行します。
+6. **フロントエンドのセットアップとビルド**
 
 ```bash
-./vendor/bin/sail npm install
-./vendor/bin/sail npm run dev
+sail npm install
+sail npm install alpinejs
+sail npm run build
 ```
 
----
+7. **アプリケーションへのアクセス**
+   ブラウザで [http://localhost](http://localhost) にアクセスします。
 
-## テストの実行とカバレッジ測定
-
-開発した機能（画面アクセス、書籍CRUD、レビュー、お気に入り、いいね、ランキング、Fortify認証、公開APIなど）の自動テストが完備されています。
-
-### テスト実行コマンド
+#### テスト実行
 
 ```bash
-# 全ての機能テスト・単体テストを実行
-./vendor/bin/sail artisan test
+sail artisan test
 ```
 
-### テストカバレッジ（カバー率）の測定
-
-カバレッジを測定するには `.env` に `XDEBUG_MODE=coverage` が定義され、コンテナが再起動されている必要があります。
+カバレッジ付きで実行する場合:
 
 ```bash
-# ターミナルでカバー率を確認
-./vendor/bin/sail artisan test --coverage
-
-# ブラウザ表示用の HTML カバレッジレポートを出力
-./vendor/bin/sail artisan test --coverage-html=coverage
+sail artisan test --coverage
 ```
 
-- **カバー率実績**: **`89.4%`**（基本機能目標 `60%超` に対して、大幅な合格ラインクリアを達成済み）
-
----
-
-## コード品質とフォーマット（Laravel Pint）
-
-プロジェクト全体のコードスタイルを美しく保つため、PSR-12に準拠した自動整形ツール「Laravel Pint」を導入しています。
+コード規約テスト（Laravel Pint）を実行する場合:
 
 ```bash
-# コード自動整形を実行
-./vendor/bin/sail bin pint
-
-# コード規約エラーがないか検証
-./vendor/bin/sail bin pint --test
+sail bin pint --test
 ```
 
-検証を実行した際、`No fixable issues were found` と緑色で表示される状態を維持しています。
+#### 機能一覧
 
----
+- ユーザー認証（登録、ログイン、ログアウト）
+- 書籍管理（登録・詳細表示・編集・削除、所有者認可制御）
+- 高度な検索・フィルタ（キーワード検索、ジャンル絞り込み、並び順変更）
+- ISBN自動入力（13桁ISBNによるGoogle Books API連携とフォーム自動補完）
+- ジャンル管理（一覧・詳細表示、登録・編集・削除）
+- レビュー・評価（5段階評価およびコメント投稿・編集・削除）
+- お気に入り・いいね（お気に入り登録・解除、レビューへのいいね）
+- ランキング（レビュー平均評価順TOP10表示）
+- マイ読書レポート（読書統計、評価分布、高評価書籍TOP5等のダッシュボード）
+- 読書計画・通知（目標期日管理、日次バッチ自動失効・リマインダー通知）
+- 公開API（書籍情報のCRUD操作およびSanctumトークン認証）
 
-## 公開APIエンドポイント一覧
+#### APIエンドポイント一覧
 
-認証不要の公開APIです。全エンドポイントは `/api/v1` プレフィックス配下に定義されています。
-APIのレスポンスは一貫して `{"data": ...}` 構造にラップして返却され、エラー時は適切な HTTP ステータスコード（404, 422など）と日本語エラーメッセージを含む JSON を返します。
+全エンドポイントは `/api/v1` プレフィックス配下に定義されています。書き込み系エンドポイント（POST / PUT / DELETE）には Sanctum によるトークン認証（`Authorization: Bearer {token}`）が必要です。
 
-| HTTPメソッド | URI                    | 概要                                                                       | 認証 |
-| :----------- | :--------------------- | :------------------------------------------------------------------------- | :--- |
-| **GET**      | `/api/v1/books`        | 書籍一覧（キーワード・ジャンルIDでの絞り込み、ページネーション対応）       | 不要 |
-| **GET**      | `/api/v1/books/{book}` | 指定書籍の個別詳細表示（紐づくジャンル情報・全レビュー詳細をネストで返却） | 不要 |
-| **POST**     | `/api/v1/books`        | 新しい書籍の新規登録（バリデーション＋複数ジャンル紐付け）                 | 不要 |
-| **PUT**      | `/api/v1/books/{book}` | 指定書籍の情報の更新                                                       | 不要 |
-| **DELETE**   | `/api/v1/books/{book}` | 指定書籍の削除（お気に入り・レビューなど関連データも物理削除）             | 不要 |
+| HTTPメソッド | URI                  | 認証           | 概要                                                         |
+| :----------- | :------------------- | :------------- | :----------------------------------------------------------- |
+| GET          | /api/v1/books        | 不要           | 書籍一覧取得（検索・ジャンル絞り込み・ページネーション付き） |
+| GET          | /api/v1/books/{book} | 不要           | 指定IDの書籍詳細取得（ジャンル・レビュー含む）               |
+| POST         | /api/v1/books        | 必要 (Sanctum) | 書籍新規登録                                                 |
+| PUT          | /api/v1/books/{book} | 必要 (Sanctum) | 指定IDの書籍更新（所有者認可チェックあり）                   |
+| DELETE       | /api/v1/books/{book} | 必要 (Sanctum) | 指定IDの書籍削除（カスケード削除・所有者認可チェックあり）   |
