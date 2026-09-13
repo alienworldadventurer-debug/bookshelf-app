@@ -153,7 +153,7 @@ git clone https://github.com/alienworldadventurer-debug/bookshelf-app.git
 cd bookshelf-app
 ```
 
-2. **.envファイルの準備**
+2. **.envファイルの準備**<br />
    .env.example をコピーして .env を作成します。
 
 ```bash
@@ -171,7 +171,7 @@ DB_USERNAME=sail
 DB_PASSWORD=password
 ```
 
-3. **Composer依存パッケージのインストールとSailコンテナの起動**
+3. **Composer依存パッケージのインストールとSailコンテナの起動**<br />
    初回クローン時は `vendor` ディレクトリが存在せず `./vendor/bin/sail` コマンドが使えないため、まず以下のDockerコマンドで `composer install` を実行し、その後にSailコンテナを起動します。
 
 ```bash
@@ -206,7 +206,7 @@ docker run --rm \
 ./vendor/bin/sail npm run build
 ```
 
-7. **アプリケーションへのアクセス**
+7. **アプリケーションへのアクセス**<br />
    ブラウザで [http://localhost](http://localhost) にアクセスします。
 
 #### テスト実行
