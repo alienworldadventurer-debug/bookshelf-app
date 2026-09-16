@@ -50,7 +50,7 @@ class StoreBookRequest extends FormRequest
             'author.string' => '著者は文字列で入力してください。',
             'author.max' => '著者は255文字以内で入力してください。',
             'isbn.string' => 'ISBNは文字列で入力してください。',
-            'isbn.digits' => 'ISBNは13桁の半角数字で入力してください。',
+            'isbn.digits' => 'ISBNはハイフンなしの13桁の半角数字で入力してください。',
             'isbn.unique' => 'このISBNは既に登録されています。',
             'published_date.date' => '出版日は正しい日付の形式で入力してください。',
             'description.string' => '説明は文字列で入力してください。',
