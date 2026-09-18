@@ -169,7 +169,12 @@ DB_PORT=3306
 DB_DATABASE=laravel
 DB_USERNAME=sail
 DB_PASSWORD=password
+
+# Google Books APIキー（※個人用のAPIキーはセキュリティ保護のためリポジトリ内に設定・保存しておりません。ISBN自動入力機能を利用する場合はご自身のAPIキーを設定してください。）
+GOOGLE_BOOKS_API_KEY=
 ```
+
+※ APIキー未設定の場合でも、ISBN自動入力以外の機能および自動テスト（`sail test`）はすべて正常に動作します。
 
 3. **Composer依存パッケージのインストールとSailコンテナの起動**<br />
    初回クローン時は `vendor` ディレクトリが存在せず `./vendor/bin/sail` コマンドが使えないため、まず以下のDockerコマンドで `composer install` を実行し、その後にSailコンテナを起動します。
